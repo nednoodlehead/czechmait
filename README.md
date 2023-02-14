@@ -3,6 +3,8 @@ A chessbot designed to smack low elo players
 
 Written in python to be fairly customizable with different options to play risky, safe, or somewhere inbetween.
 
+Has nothing to do with the firearm with a similar name
+
 ## Features:
 ### TODO
 - Ability to copy chessboard from clipboard, and analyze it
