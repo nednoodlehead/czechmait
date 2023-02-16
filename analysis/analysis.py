@@ -55,16 +55,19 @@ class ChessBoard:
         self.board = board if board is not None else default_board
 
     def is_occupied(self, tile):
-        if not self.board[tile]:
+        # is the passed in tile an instance of "Empty" (empty chess slot)
+        if isinstance(self.board[tile], Empty):
             return False
         else:
             return True
 
     def is_occupied_enemy(self, tile, color):
-        """ Returns a bool based on if the given tile is occupied by opposite color
+        """
+        Returns a bool based on if the given tile is occupied by opposite color
         :param tile: Tile, tile to inspect (tile class)
         :param color: str, either white or black, the color of the player querying
-        :returns bool: is it occupied by enemy piece? aka, can it be taken?"""
+        :returns bool: is it occupied by enemy piece? aka, can it be taken?
+        """
         if color.lower() == "black":
             if self.board[tile].color == "white":
                 return True
@@ -76,18 +79,60 @@ class ChessBoard:
             else:
                 return False
         else:
-            # raise ValueError(f"Did not input black or white :: {color}")
-            return "balls?"
+            raise ValueError(f"Did not input black or white :: {color}")
 
-    def testin(self):
-        print(self.board["a1"].color)
+    def get_color(self, tile):
+        """
+        Returns either 'black', 'white' or none depending on the occupant of the tile
+        :param tile: tile to be queried (e.g. "b3")
+        """
+        if self.board[tile].color not in ["black", "white"]:
+            return None
+        else:
+            return self.board[tile].color
 
     def get_tile(self, tile):
         """Returns the desired tile instance from given input
-        :param tile (str) tile instance being requested"""
+        :param tile (str) tile instance being requested
+        """
         for key in self.board.keys():
             if key.tile == tile:
                 return key
+
+    def notation_translation(self, notation, turn):
+        """
+        :param notation: the notation for the move
+        :param turn: who's turn is it? "white" or "black"
+        :return: a tuple, (starting_square, ending_square) representing the notation
+        """
+        # if "x" is in the notation, we turn taking to true, so we can parse a bit easier
+        taking = False if "x" in notation else True
+        # if the first letter is not a capital, it is a pawn move. e.g. b5 or h3
+        if ord(notation[0]) > 90 or ord(notation) < 65:
+            # if there is an x in the notation
+            if taking:  # cxb5
+                # ensure that the given tile being taken on is correct
+                if not self.get_color(notation[2:]):
+                    raise ValueError(f"Incorrect notation given :: {notation}")
+                # get the color of tile being taken on
+                color = self.get_color(notation[2:])
+                new_tile = notation[2:]
+                # if it is white, mark the tile above and on the first-letter file
+                if color == "white":
+                    # represents the only tile on the board that a pawn could take a white piece on this square
+                    org_tile = notation[0] + str(int(notation[-1] + 1))
+                    print(f"{org_tile} is taking to: {new_tile}")
+                # if the color is black (all other cases were removed on the valueError above
+                else:
+                    org_tile = notation[0] + str(int(notation[-1] - 1))
+                return org_tile, new_tile
+            # there is no taking notation, it is a pawn move. e.g. b3
+            else:
+
+
+
+    def move_piece(self, notation):
+        pass
 
 
 class Piece:
@@ -126,9 +171,11 @@ class Pawn(Piece):
             # and it is on its default rank
             if tile == self.starting_tile:
                 # if the letter position two ahead of it is unoccupied, you can move there
+                print(board.is_occupied("f5"))
                 if not board.is_occupied(f"{tile[0]}5"):
                     # add to available moves list
                     available.append(f"{tile[0]}5")
+                    available.append(f"{tile[0]}6")
             # if the given tile is not on the seventh rank
             else:
                 # if the tile infront of it is unoccupied, you can move there
@@ -204,7 +251,7 @@ default_board = {
 
 chs = ChessBoard()
 # x = chs.is_occupied_enemy(chs.get_tile("g5"), "black")
-x = chs.board["c7"].available_moves(chs.get_tile("c7"), chs)
+x = chs.move_piece("bruh")
 
 print(x)
 
