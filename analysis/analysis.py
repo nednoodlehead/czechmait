@@ -1,4 +1,6 @@
 # purpose of this file is to take in a chessboard as data, and analyze the position
+from image import export
+from empty.empty import Empty
 
 class Tile:
     # creates the tile type
@@ -41,12 +43,6 @@ class Tile:
         return f"{self.tile}"
 
 
-# represents an empty tile
-class Empty:
-    # used in the queries of what occupies a tile, returns None to that query. This is the alternative to error handing
-    # within the queries themselves
-    color = None
-
 
 class ChessBoard:
     score = 0
@@ -60,6 +56,10 @@ class ChessBoard:
             return False
         else:
             return True
+
+    # export the current board to a png
+    def export_png(self):
+        export.hashmap_to_png(self.board)
 
     # used to see nearby tiles through calculations
     @staticmethod
@@ -121,6 +121,223 @@ class ChessBoard:
             if key.tile == tile:
                 return key
 
+    # purpose of this function is to remove the unnessisary parts of the notation. All of these should be implied and
+    # understood by the bot in different ways than explict notation
+    @staticmethod
+    def fix_notation(notation):
+        new_str = ""
+        for letter in notation:
+            if letter in "+#x":
+                pass
+            else:
+                new_str += letter
+        return new_str
+
+    def pawn_search(self, notation, turn, taking):
+        letter_map = {
+            "Q": Queen,
+            "N": Knight,
+            "B": Bishop,
+            "R": Rook
+        }
+        if "=" in notation:
+            # find the index of where "=" is inside the notation
+            equals_index = notation.index("=")
+            # the return type will be denoted by the next letter, so what pawn promotes into
+            return_type = letter_map[notation[equals_index + 1]]
+            # adjust notation so rest of function works as expected and nothing else needs this portion so...
+            notation = notation[:-2]
+        else:
+            return_type = Pawn
+        # if there is an x in the notation
+        if taking:  # cxb5
+            new_tile = notation[2:]
+            # if it is white, mark the tile above and on the first-letter file
+            if turn == "white":
+                # represents the only tile on the board that a pawn could take a white piece on this square
+                start_tile = notation[0] + str(int(notation[-1]) - 1)
+                return start_tile, new_tile, return_type
+            # if the color is black (all other cases were removed on the valueError above
+            else:
+                start_tile = notation[0] + str(int(notation[-1]) + 1)
+            return start_tile, new_tile, return_type
+        # there is no taking notation, it is a pawn move. e.g. b3
+        else:
+            if turn == "white":
+                # if the position below the notation is empty, the pawn did a double jump, so starting pos -> 4th
+                if isinstance(self.get_tile(f"{notation[0]}{str(int(notation[1]) - 1)}"), Empty):
+                    # pawn did do a double jump:
+                    return notation[0] + str(int(notation[1]) - 2), notation, return_type
+                else:
+                    # pawn did not do a double jump
+                    return notation[0] + str(int(notation[1]) - 1), notation, return_type
+            # if it is blacks turn
+            else:
+                # if the position above the notation is empty, the pawn did a double jump, so starting pos -> 5th
+                if isinstance(self.get_tile(f"{notation[0]}{str(int(notation[1]) + 1)}"), Empty):
+                    # the pawn did do a double jump
+                    return notation[0] + str(int(notation[1]) + 2), notation, return_type
+                else:
+                    # the pawn did not do a double jump
+                    return notation[0] + str(int(notation[1]) + 1), notation, return_type
+
+    def rook_search(self, notation, turn, piece):
+        # check for the edge case that the notation is 5 long, and it is like: Rd5b5. so d5 -> b5
+        if len(notation) == 5:
+            return notation[1:3], notation[3:5], piece
+        # this will be a list of all piece types that can move to that square
+        piece_instances = []
+        # a var to hold to notation. assumes post-self.fix_notation
+        base_tile = notation[-2:]
+        # these are the sets that represent going negative and positive in each direction
+        num_sets = [(1, 0), (0, 1), (-1, 0), (0, -1)]
+        # iterate over each set
+        for num in num_sets:
+            # pass into function that will do the calculation
+            search = self.vert_hori_search(base_tile, piece, turn, num[0], num[1])
+            if search is not None:
+                # if it does not return None, append it to piece instances
+                piece_instances.append(search)
+
+        if len(piece_instances) == 1:
+            return piece_instances[0], base_tile, piece
+        else:
+            for tile in piece_instances:
+                if notation[1] in tile:
+                    return tile, base_tile, piece
+
+    def vert_hori_search(self, tile, piece, turn, amount_1, amount_2):
+        # loop:
+        while True:
+            # define tile as the converted tile, while also passing an instance of itself in
+            # this is important so the numbers passed in actually change.
+            tile = self.convert_tile(tile, amount_1, amount_2)
+            # if the tile is None, aka: hit edge of board, break loop for that direction
+            if tile is None:
+                break
+            # if it is an instance of the desired piece (Rook or Queen)
+            if isinstance(self.board[tile], piece):
+                # if it is the color of the playing turn
+                if self.board[tile].color == turn:
+                    # return the tile
+                    return tile
+                # break if it reaches an enemy queen or rook (is instance of one, not same color)
+                break
+            # if the tile is occupied by a piece (and it is not one of the desired pieces, stop querying)
+            if self.is_occupied(tile):
+                break
+        # return None if nothing is found
+        return None
+
+    def knight_search(self, notation, turn):
+        tile_list = [(1, 2), (-1, 2), (2, -1), (2, 1), (-2, 1), (-2, -1), (1, -2), (-1, -2)]
+        # used to store the list of the knights that are able to make the coordinate move. Usuaully, it is just one,
+        # but multiple are used if notation
+        nearby_knights = []
+        # for each of the coordinates:
+        for coords in tile_list:
+            # convert the tile on notation with the coordniates into the tile object
+            tile = self.get_tile(notation[-2:]).convert_tile(coords[0], coords[1])
+            # if the occupant of the tile is a knight, add to knight list
+            if tile:
+                if isinstance(self.board[tile], Knight):
+                    # if the color of the knight matches the current move (white to play)
+                    if self.board[tile].color == turn:
+                        nearby_knights.append(tile)
+        if len(nearby_knights) == 0:
+            raise ValueError("Invalid notation given with current board")
+        if len(notation) == 3:  # case: Ne3
+            # return the only available knight's square that can go there, and the notation telling which square
+            # it is being moved to. There should also only be one item in nearby_knights
+            return nearby_knights[0], notation[-2:], Knight
+        # case where notation denotes that the second char is unique (letter or number). It
+        elif len(notation) == 4:  # case Nde3 (b file knights goes to e3)
+            # unique is the character that uniquely identifies the original square
+            unique = notation[1]
+            for item in nearby_knights:
+                if unique in item:
+                    return item, notation[-2:], Knight
+        elif len(notation) == 5:
+            return notation[1:3], notation[3:5], Knight  # (e.g. N3d4)
+
+    def bishop_search(self, notation, turn, piece):
+        """
+                :param notation: "Be3". Must be parsed by fix_notation first
+                :param piece: either Queen or Bishop
+                :param turn: "black" or "white"
+                :return: either None (No valid pieces found) or "<tile> <tile>": "b3", "a2"
+                """
+        operators = [("+", "+"), ("+", "-"), ("-", "+"), ("-", "-")]
+        # will contain list of available moves where the bishop could have moved from
+        bishop_tiles = []
+        # for each pair of operators:
+        for operator_pair in operators:
+            # count represents going just one square at a time
+            count = 1
+            # loop over each option of a diagonal (a1, b2, c3, d4...)
+            while True:
+                # create the x and y of the tile to pass to convert_tile (e.g. -1, +1 or +3, +3)
+                increment_number_1 = int(operator_pair[0] + str(count))
+                increment_number_2 = int(operator_pair[1] + str(count))
+                # convert the numbers into a tile, relative to starting tile
+                new_tile = self.convert_tile(notation[-2:], increment_number_1, increment_number_2)
+                # if the tile is occupied by bishop or queen, append to list, and break. As more bishops have no impact
+                if new_tile is None:
+                    break
+
+                elif isinstance(self.board[new_tile], piece):
+                    if self.board[new_tile].color == turn:
+                        bishop_tiles.append(new_tile)
+                        break
+                elif self.is_occupied(new_tile):
+                    break
+                # if the tile is non-existant (None) or is occupied by a piece, break the loop
+                # add to the count!
+                count += 1
+        # this is guarding for the edge case that there are multiple bishops that can move to required square
+        # in case where two bishops are able to move there:
+        if len(notation) == 3:
+            # case where the Queen type is querying, and it does not find anything
+            if len(bishop_tiles) == 0:
+                # return empty list as it will not matter, because later it will add lists together
+                return [], notation[-2:], piece
+            else:
+                # if the list isn't empty, return the tile the piece is on, notation, and instance of piece
+                return bishop_tiles[0], notation[-2:], piece
+        # in case where there is a unique char as the first index, we can use that to determine which bishop is in
+        # the notation
+        if len(notation) == 4:
+            for bishop in bishop_tiles:
+                if notation[1] in bishop:
+                    return bishop, notation[-2:], piece
+        # if the length of the notation is greater than 4, then the 1st and 2nd chars are the first tile,
+        # and 3rd and 4th are the ending notation. "Be3d2"
+        if len(notation) > 4:
+            return notation[1:3], notation[3:5], piece
+
+    def king_search(self, notation, turn):
+        # possible coordinate spots from the king
+        spots = [(0, 1), (0, -1), (1, 0), (1, -1), (1, 1), (-1, 0), (-1, 1), (-1, -1)]
+        # iterate over them
+        for coords in spots:
+            # make the new tile
+            new_tile = self.convert_tile(notation[-2:], coords[0], coords[1])
+            # if the tile contains a King type, return it. Impossible for a King to be there
+            # that is an opposite color. Because then king could take king
+            if isinstance(self.board[new_tile], King):
+                return notation[-2:], new_tile, King
+
+    def queen_search(self, notation, turn):
+        bishop_results = self.bishop_search(notation, turn, Queen)
+        rook_results = self.rook_search(notation, turn, Queen)
+        print(f"bishop: {bishop_results}")
+        print(f'rook: {rook_results}')
+        if bishop_results is None:
+            return rook_results
+        else:
+            return bishop_results
+
+
     def notation_translation(self, notation, turn):
         """
         :param notation: the notation for the move
@@ -134,136 +351,35 @@ class ChessBoard:
             raise ValueError(f"Incorrect turn given :: {turn}")
         # if the first letter is not a capital, it is a pawn move. e.g. b5 or h3
         if ord(notation[0]) > 90 or ord(notation[0]) < 65:
-            # if there is an x in the notation
-            if taking:  # cxb5
-                new_tile = notation[2:]
-                # if it is white, mark the tile above and on the first-letter file
-                if turn == "white":
-                    # represents the only tile on the board that a pawn could take a white piece on this square
-                    start_tile = notation[0] + str(int(notation[-1] - 1))
-                    print(f"{start_tile} is taking to: {new_tile}")
-                # if the color is black (all other cases were removed on the valueError above
-                else:
-                    start_tile = notation[0] + str(int(notation[-1]) + 1)
-                    print("WHAT")
-                return start_tile, new_tile
-            # there is no taking notation, it is a pawn move. e.g. b3
-            else:
-                if turn == "white":
-                    # if the position below the notation is empty, the pawn did a double jump, so starting pos -> 4th
-                    if isinstance(self.get_tile(f"{notation[0]}{str(int(notation[1] - 1))}"), Empty):
-                        # pawn did do a double jump:
-                        return f"{notation[0]}{str(int(notation[1]) - 2)}", notation
-                    else:
-                        # pawn did not do a double jump
-                        return f"{notation[0]}{str(int(notation[1]) - 1)}", notation
-                # if it is blacks turn
-                else:
-                    # if the position above the notation is empty, the pawn did a double jump, so starting pos -> 5th
-                    if isinstance(self.get_tile(f"{notation[0]}{str(int(notation[1]) + 1)}"), Empty):
-                        # the pawn did do a double jump
-                        return f"{notation[0]}{str(int(notation[1]) + 2)}", notation
-                    else:
-                        # the pawn did not do a double jump
-                        return f"{notation[0]}{str(int(notation[1]) + 1)}", notation
+            return self.pawn_search(notation, turn, taking)
         # knight  (Kb5 or Kge5(knight from g file to e5))
         elif notation[0] == "N":
-            new_str = ""
-            for letter in notation:
-                if letter in "+#x":
-                    pass
-                else:
-                    new_str += letter
-            notation = new_str
-            # this is from the given tile, where could knights come from: represented in coordinates relative to notat
-            tile_list = [(1, 2), (-1, 2), (2, -1), (2, 1), (-2, 1), (-2, -1), (1, -2), (-1, -2)]
-            # used to store the list of the knights that are able to make the coordinate move. Usuaully, it is just one,
-            # but multiple are used if notation
-            nearby_knights = []
-            # for each of the coordinates:
-            for coords in tile_list:
-                # convert the tile on notation with the coordniates into the tile object
-                tile = self.get_tile(notation[-2:]).convert_tile(coords[0], coords[1])
-                # if the occupant of the tile is a knight, add to knight list
-                if tile:
-                    if isinstance(self.board[tile], Knight):
-                        # if the color of the knight matches the current move (white to play)
-                        if self.board[tile].color == turn:
-                            nearby_knights.append(tile)
-            if len(nearby_knights) == 0:
-                raise ValueError("Invalid notation given with current board")
-            if len(notation) == 3:  # case: Ne3
-                # return the only available knight's square that can go there, and the notation telling which square
-                # it is being moved to. There should also only be one item in nearby_knights
-                return nearby_knights[0], notation[-2:]
-            # case where notation denotes that the second char is unique (letter or number). It
-            elif len(notation) == 4:  # case Nde3 (b file knights goes to e3)
-                # unique is the character that uniquely identifies the original square
-                unique = notation[1]
-                for item in nearby_knights:
-                    if unique in item:
-                        return item, notation[-2:]
-            elif len(notation) == 5:
-                return notation[1:3], notation[3:5]  # (e.g. N3d4)
-
+            notation = self.fix_notation(notation)
+            return self.knight_search(notation, turn)
         elif notation[0] == "B":  # bishop
             # would be a much easier notation if promoting to bishop wasn't a thing
             # parse the extras from notation out
-            new_str = ""
-            for letter in notation:
-                if letter in "x+#":
-                    pass
-                else:
-                    new_str += letter
-            notation = new_str
-            ops = [("+", "+"), ("+", "-"), ("-", "+"), ("-", "-")]
-            # will contain list of available moves where the bishop could have moved from
-            bishop_tiles = []
-            # for each pair of operators:
-            for operator_pair in ops:
-                # count represents going just one square at a time
-                count = 1
-                # loop over each option of a diagonal (a1, b2, c3, d4...)
-                while True:
-                    # create the x and y of the tile to pass to convert_tile (e.g. -1, +1)
-                    increment_number_1 = int(operator_pair[0] + str(count))
-                    increment_number_2 = int(operator_pair[1] + str(count))
-                    # convert the numbers into a tile, relative to starting tile
-                    new_tile = self.convert_tile(notation[-2:], increment_number_1, increment_number_2)
-                    # if the tile is occupied by bishop, append to list, and break. As more bishops have no impact
-                    if new_tile is None:
-                        break
-                    elif isinstance(self.board[new_tile], Bishop):
-                        if self.board[new_tile].color == turn:
-                            bishop_tiles.append(new_tile)
-                        break
-                    elif self.is_occupied(new_tile):
-                        break
-                    # if the tile is non-existant (None) or is occupied by a piece, break the loop
-                    # add to the count!
-                    count += 1
-            # this is guarding for the edge case that there are multiple bishops that can move to required square
-            # in case where two bishops are able to move there:
-            if len(notation) == 3:
-                print(notation, bishop_tiles)
-                return bishop_tiles[0], notation[-2:]
-            # in case where there is a unique char as the first index, we can use that to determine which bishop is in
-            # the notation
-            if len(notation) == 4:
-                for bishop in bishop_tiles:
-                    if notation[1] in bishop:
-                        return bishop, notation[-2:]
-            # if the length of the notation is greater than 4, then the 1st and 2nd chars are the first tile,
-            # and 3rd and 4th are the ending notation
-            if len(notation) > 4:
-                return notation[1:3], notation[3:5]
+            notation = self.fix_notation(notation)
+            return self.bishop_search(notation, turn, Bishop)
         elif notation[0] == "R":  # rook
-            pass
+            notation = self.fix_notation(notation)
+            return self.rook_search(notation, turn, Rook)
         elif notation[0] == "Q":  # queen
-            pass
+            notation = self.fix_notation(notation)
+            return self.queen_search(notation, turn)
         else:  # in the instance of a king move ...
-            pass
+            notation = self.fix_notation(notation)
+            return self.king_search(notation, turn)
 
+    def update_board(self, tile_old, tile_new, type_piece):
+        """
+        interface to update the board with tile piece starts on, and tile it ends on
+        :param tile_old: tile that the given piece begins on. Will become 'Empty()'
+        :param tile_new: tile that the given piece moves to. Will inherit the instance of tile_old
+        :param type_piece: check is done so if type_piece != piece instance, a pawn promotion has occured, and a new
+                           piece is created on that tile
+        Modifies self.board
+        """
 
     def move_piece(self, notation):
         pass
@@ -290,6 +406,7 @@ class Pawn(Piece):
     def __init__(self, color, starting_tile):
         super().__init__(color, starting_tile)
         self.color = color
+        self.name = f"{color}_pawn"
         self.starting_tile = starting_tile
 
     def available_moves(self, tile: Tile, board: ChessBoard):  # returns a move notation list e.g. [a4, xb3]
@@ -329,6 +446,7 @@ class Rook(Piece):
     def __init__(self, color, starting_tile):
         super().__init__(color, starting_tile)
         self.color = color
+        self.name = f"{color}_rook"
 
 
 class Bishop(Piece):
@@ -337,6 +455,7 @@ class Bishop(Piece):
     def __init__(self, color, starting_tile):
         super().__init__(color, starting_tile)
         self.color = color
+        self.name = f"{color}_bishop"
 
 
 class Knight(Piece):
@@ -345,6 +464,7 @@ class Knight(Piece):
     def __init__(self, color, starting_tile):
         super().__init__(color, starting_tile)
         self.color = color
+        self.name = f"{color}_knight"
 
 
 class Queen(Piece):
@@ -352,6 +472,8 @@ class Queen(Piece):
 
     def __init__(self, color, starting_tile):
         super().__init__(color, starting_tile)
+        self.color = color
+        self.name = f"{color}_queen"
 
 
 class King(Piece):
@@ -359,6 +481,8 @@ class King(Piece):
 
     def __init__(self, color, starting_tile):
         super().__init__(color, starting_tile)
+        self.color = color
+        self.name = f"{color}_king"
 
 
 default_board = {
@@ -370,7 +494,7 @@ default_board = {
     Tile("b8"): Knight("black", "b8"), Tile("c1"): Bishop("white", "c1"), Tile("c2"): Pawn("white", "c2"),
     Tile("c3"): Empty(), Tile("c4"): Empty(), Tile("c5"): Empty(),
     Tile("c6"): Empty(), Tile("c7"): Pawn("black", "c7"), Tile("c8"): Bishop("black", "c8"),
-    Tile("d1"): Queen("white", "d1"), Tile("d2"): Pawn("white", "d2"), Tile("d3"): Empty(),
+    Tile("d1"): Empty(), Tile("d2"): Pawn("white", "d2"), Tile("d3"): Empty(),
     Tile("d4"): Empty(), Tile("d5"): Empty(), Tile("d6"): Empty(),
     Tile("d7"): Pawn("black", "d7"), Tile("d8"): Queen("black", "d8"), Tile("e1"): King("white", "e1"),
     Tile("e2"): Pawn("white", "e2"), Tile("e3"): Empty(), Tile("e4"): Empty(),
@@ -380,7 +504,7 @@ default_board = {
     Tile("f6"): Empty(), Tile("f7"): Pawn("black", "f7"), Tile("f8"): Bishop("black", "f8"),
     Tile("g1"): Knight("white", "g1"), Tile("g2"): Pawn("white", "g2"), Tile("g3"): Empty(),
     Tile("g4"): Empty(), Tile("g5"): Empty(), Tile("g6"): Empty(),
-    Tile("g7"): Pawn("black", "g7"), Tile("g8"): Knight("black", "g8"), Tile("h1"): Rook("white", "h1"),
+    Tile("g7"): Pawn("black", "g7"), Tile("g8"): Empty(), Tile("h1"): Rook("white", "h1"),
     Tile("h2"): Pawn("white", "h2"), Tile("h3"): Empty(), Tile("h4"): Empty(),
     Tile("h5"): Empty(), Tile("h6"): Empty(), Tile("h7"): Pawn("black", "h7"),
     Tile("h8"): Rook("black", "h8"),
@@ -388,14 +512,14 @@ default_board = {
 
 testing_board = {
     Tile("a1"): Rook("white", "a1"), Tile("a2"): Pawn("white", "a2"), Tile("a3"): Empty(),
-    Tile("a4"): Empty(), Tile("a5"): Empty(), Tile("a6"): Empty(),
+    Tile("a4"): Empty(), Tile("a5"): Rook("black", "a1"), Tile("a6"): Empty(),
     Tile("a7"): Pawn("black", "a7"), Tile("a8"): Rook("black", "a7"), Tile("b1"): Knight("white", "b1"),
     Tile("b2"): Pawn("white", "b2"), Tile("b3"): Empty(), Tile("b4"): Empty(),
-    Tile("b5"): Pawn("black", "b7"), Tile("b6"): Empty(), Tile("b7"): Empty(),
+    Tile("b5"): Pawn("white", "b7"), Tile("b6"): Empty(), Tile("b7"): Empty(),
     Tile("b8"): Knight("black", "b8"), Tile("c1"): Bishop("white", "c1"), Tile("c2"): Pawn("white", "c2"),
     Tile("c3"): Empty(), Tile("c4"): Empty(), Tile("c5"): Empty(),
     Tile("c6"): Empty(), Tile("c7"): Pawn("black", "c7"), Tile("c8"): Bishop("black", "c8"),
-    Tile("d1"): Queen("white", "d1"), Tile("d2"): Pawn("white", "d2"), Tile("d3"): Empty(),
+    Tile("d1"): Empty(), Tile("d2"): Pawn("white", "d2"), Tile("d3"): Empty(),
     Tile("d4"): Empty(), Tile("d5"): Empty(), Tile("d6"): Empty(),
     Tile("d7"): Bishop("black", "c8"), Tile("d8"): Queen("black", "d8"), Tile("e1"): King("white", "e1"),
     Tile("e2"): Empty(), Tile("e3"): Empty(), Tile("e4"): Pawn("white", "e2"),
@@ -404,19 +528,12 @@ testing_board = {
     Tile("f3"): Empty(), Tile("f4"): Empty(), Tile("f5"): Empty(),
     Tile("f6"): Empty(), Tile("f7"): Pawn("black", "f7"), Tile("f8"): Bishop("black", "f8"),
     Tile("g1"): Knight("white", "g1"), Tile("g2"): Pawn("white", "g2"), Tile("g3"): Empty(),
-    Tile("g4"): Empty(), Tile("g5"): Empty(), Tile("g6"): Empty(),
-    Tile("g7"): Pawn("black", "g7"), Tile("g8"): Knight("black", "g8"), Tile("h1"): Rook("white", "h1"),
+    Tile("g4"): Empty(), Tile("g5"): Rook("black", "h1"), Tile("g6"): Empty(),
+    Tile("g7"): Pawn("black", "g7"), Tile("g8"): Queen("white", "d1"), Tile("h1"): Rook("white", "h1"),
     Tile("h2"): Pawn("white", "h2"), Tile("h3"): Empty(), Tile("h4"): Empty(),
-    Tile("h5"): Empty(), Tile("h6"): Empty(), Tile("h7"): Pawn("black", "h7"),
+    Tile("h5"): Queen("white", "h3"), Tile("h6"): Empty(), Tile("h7"): Empty(),
     Tile("h8"): Rook("black", "h8"),
     }
 
-chs = ChessBoard(testing_board)
-# x = chs.is_occupied_enemy(chs.get_tile("g5"), "black")
-x = chs.notation_translation("Bxb5", "white")
-
-print(f"{x[0]} moved to {x[1]}")
-
-
-
+# chs = ChessBoard(testing_board)
 
