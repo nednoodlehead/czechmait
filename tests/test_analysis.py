@@ -1,7 +1,8 @@
 import pytest
-from analysis.analysis import ChessBoard, Tile, Pawn, Rook, Bishop, Queen, King, Knight
-from empty.empty import Empty
-
+from board.empty import Empty
+from board.pieces import Pawn, Bishop, Knight, Rook, Queen, King
+from board.tile import Tile
+from board.analysis import ChessBoard
 
 @pytest.fixture()
 def board():
