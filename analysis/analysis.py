@@ -330,13 +330,27 @@ class ChessBoard:
     def queen_search(self, notation, turn):
         bishop_results = self.bishop_search(notation, turn, Queen)
         rook_results = self.rook_search(notation, turn, Queen)
-        print(f"bishop: {bishop_results}")
-        print(f'rook: {rook_results}')
         if bishop_results is None:
             return rook_results
         else:
             return bishop_results
 
+    @staticmethod
+    def handle_casting(notation, turn):
+        if len(notation) == 3:
+            if turn == "black":
+                # black short castle:
+                return ("e8", "g8", King), ("h8", "f8", Rook)
+            else:
+                # white short castle:
+                return ("e1", "g1", King), ("h1", "f1", Rook)
+        else:
+            if turn == "black":
+                # black long castle
+                return ("e8", "c8", King), ("a8", "d8", Rook)
+            else:
+                # white long castle
+                return ("e1", "c1", King), ("ai", "d1", Rook)
 
     def notation_translation(self, notation, turn):
         """
@@ -344,6 +358,8 @@ class ChessBoard:
         :param turn: who's turn is it? "white" or "black"
         :return: a tuple, (starting_square, ending_square) representing the notation
         """
+        if "0" in notation or "O" in notation:
+            return self.handle_casting(notation, turn)
         # if "x" is in the notation, we turn taking to true, so we can parse a bit easier
         taking = True if "x" in notation else False
         # ensure that turn is a correct param
@@ -535,5 +551,36 @@ testing_board = {
     Tile("h8"): Rook("black", "h8"),
     }
 
-# chs = ChessBoard(testing_board)
+castle_board = {
+    Tile("a1"): Rook("white", "a1"), Tile("a2"): Pawn("white", "a2"), Tile("a3"): Empty(),
+    Tile("a4"): Empty(), Tile("a5"): Empty(), Tile("a6"): Empty(),
+    Tile("a7"): Pawn("black", "a7"), Tile("a8"): Rook("black", "a7"), Tile("b1"): Knight("white", "b1"),
+    Tile("b2"): Pawn("white", "b2"), Tile("b3"): Empty(), Tile("b4"): Empty(),
+    Tile("b5"): Empty(), Tile("b6"): Empty(), Tile("b7"): Pawn("black", "b7"),
+    Tile("b8"): Empty(), Tile("c1"): Bishop("white", "c1"), Tile("c2"): Pawn("white", "c2"),
+    Tile("c3"): Empty(), Tile("c4"): Empty(), Tile("c5"): Empty(),
+    Tile("c6"): Empty(), Tile("c7"): Pawn("black", "c7"), Tile("c8"): Empty(),
+    Tile("d1"): Empty(), Tile("d2"): Pawn("white", "d2"), Tile("d3"): Empty(),
+    Tile("d4"): Empty(), Tile("d5"): Empty(), Tile("d6"): Empty(),
+    Tile("d7"): Pawn("black", "d7"), Tile("d8"): Empty(), Tile("e1"): King("white", "e1"),
+    Tile("e2"): Pawn("white", "e2"), Tile("e3"): Empty(), Tile("e4"): Empty(),
+    Tile("e5"): Empty(), Tile("e6"): Empty(), Tile("e7"): Pawn("white", "e7"),
+    Tile("e8"): King("black", "e8"), Tile("f1"): Empty(), Tile("f2"): Pawn("white", "f2"),
+    Tile("f3"): Empty(), Tile("f4"): Empty(), Tile("f5"): Empty(),
+    Tile("f6"): Empty(), Tile("f7"): Pawn("black", "f7"), Tile("f8"): Bishop("black", "f8"),
+    Tile("g1"): Empty(), Tile("g2"): Pawn("white", "g2"), Tile("g3"): Empty(),
+    Tile("g4"): Empty(), Tile("g5"): Empty(), Tile("g6"): Empty(),
+    Tile("g7"): Pawn("black", "g7"), Tile("g8"): Empty(), Tile("h1"): Rook("white", "h1"),
+    Tile("h2"): Pawn("white", "h2"), Tile("h3"): Empty(), Tile("h4"): Empty(),
+    Tile("h5"): Empty(), Tile("h6"): Empty(), Tile("h7"): Pawn("black", "h7"),
+    Tile("h8"): Rook("black", "h8"),
+}
+
+chs = ChessBoard(castle_board)
+
+x = chs.notation_translation("O-O-O", "black")
+
+print(x)
+
+
 
