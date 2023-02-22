@@ -2,6 +2,7 @@ import pytest
 from analysis.analysis import ChessBoard, Tile, Pawn, Rook, Bishop, Queen, King, Knight
 from empty.empty import Empty
 
+
 @pytest.fixture()
 def board():
     testing_board = {
@@ -31,8 +32,36 @@ def board():
     return ChessBoard(testing_board)
 
 
+@pytest.fixture()
+def castle_board():
+    castling_board = {
+        Tile("a1"): Rook("white", "a1"), Tile("a2"): Pawn("white", "a2"), Tile("a3"): Empty(),
+        Tile("a4"): Empty(), Tile("a5"): Empty(), Tile("a6"): Empty(),
+        Tile("a7"): Pawn("black", "a7"), Tile("a8"): Rook("black", "a7"), Tile("b1"): Knight("white", "b1"),
+        Tile("b2"): Pawn("white", "b2"), Tile("b3"): Empty(), Tile("b4"): Empty(),
+        Tile("b5"): Empty(), Tile("b6"): Empty(), Tile("b7"): Pawn("black", "b7"),
+        Tile("b8"): Empty(), Tile("c1"): Bishop("white", "c1"), Tile("c2"): Pawn("white", "c2"),
+        Tile("c3"): Empty(), Tile("c4"): Empty(), Tile("c5"): Empty(),
+        Tile("c6"): Empty(), Tile("c7"): Pawn("black", "c7"), Tile("c8"): Empty(),
+        Tile("d1"): Empty(), Tile("d2"): Pawn("white", "d2"), Tile("d3"): Empty(),
+        Tile("d4"): Empty(), Tile("d5"): Empty(), Tile("d6"): Empty(),
+        Tile("d7"): Pawn("black", "d7"), Tile("d8"): Empty(), Tile("e1"): King("white", "e1"),
+        Tile("e2"): Pawn("white", "e2"), Tile("e3"): Empty(), Tile("e4"): Empty(),
+        Tile("e5"): Empty(), Tile("e6"): Empty(), Tile("e7"): Pawn("white", "e7"),
+        Tile("e8"): King("black", "e8"), Tile("f1"): Empty(), Tile("f2"): Pawn("white", "f2"),
+        Tile("f3"): Empty(), Tile("f4"): Empty(), Tile("f5"): Empty(),
+        Tile("f6"): Empty(), Tile("f7"): Pawn("black", "f7"), Tile("f8"): Bishop("black", "f8"),
+        Tile("g1"): Empty(), Tile("g2"): Pawn("white", "g2"), Tile("g3"): Empty(),
+        Tile("g4"): Empty(), Tile("g5"): Empty(), Tile("g6"): Empty(),
+        Tile("g7"): Pawn("black", "g7"), Tile("g8"): Empty(), Tile("h1"): Rook("white", "h1"),
+        Tile("h2"): Pawn("white", "h2"), Tile("h3"): Empty(), Tile("h4"): Empty(),
+        Tile("h5"): Empty(), Tile("h6"): Empty(), Tile("h7"): Pawn("black", "h7"),
+        Tile("h8"): Rook("black", "h8"),
+    }
+    return ChessBoard(castling_board)
 
-def test_notation_translation(board: ChessBoard):
+
+def test_notation_translation(board: ChessBoard, castle_board: ChessBoard):
     #                                notation, color       starting tile, ending tile, piece that will be on ending tile
     assert board.notation_translation("Raxb5", "black") == ("a5", "b5", Rook)
     assert board.notation_translation("Bf5", "black") == ("d7", "f5", Bishop)
@@ -40,3 +69,5 @@ def test_notation_translation(board: ChessBoard):
     assert board.notation_translation("e5", "white") == ("e4", "e5", Pawn)
     assert board.notation_translation("Qgxh8", "white") == ("g8", "h8", Queen)
     assert board.notation_translation("Nc6", "black") == ("b8", "c6", Knight)
+    assert castle_board.notation_translation("0-0-0", "black") == (("e8", "c8", King), ("a8", "d8", Rook))
+    assert castle_board.notation_translation("O-O", "white") == (("e1", "g1", King), ("h1", "f1", Rook))
