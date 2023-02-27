@@ -1,7 +1,7 @@
 # purpose of this file is to take in a chessboard as data, and analyze the position
 from image import export
-from empty.empty import Empty
-from pieces.pieces import Pawn, Bishop, Knight, Rook, Queen, King
+from board.empty import Empty
+from board.pieces import Pawn, Bishop, Knight, Rook, Queen, King
 from tests.boards import enpass, default_board
 
 
@@ -366,6 +366,18 @@ class ChessBoard:
         :param type_piece: check is done so if type_piece != piece instance, a pawn promotion has occured, and a new
                            piece is created on that tile
         Modifies self.board
+        """
+        # TODO finish this
+
+    @staticmethod
+    def new_board(board, tile_old, tile_new, type_piece):
+        """
+
+        :param board:
+        :param tile_old:
+        :param tile_new:
+        :param type_piece:
+        :return:
         """
 
     def move_piece(self, notation, optional=None):
