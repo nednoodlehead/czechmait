@@ -2,7 +2,7 @@ import pytest
 from board.empty import Empty
 from board.pieces import Pawn, Bishop, Knight, Rook, Queen, King
 from board.tile import Tile
-from board.analysis import ChessBoard
+from board.chessboard import ChessBoard
 
 @pytest.fixture()
 def board():

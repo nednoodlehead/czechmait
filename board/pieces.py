@@ -10,6 +10,9 @@ class Piece:
             return True
         return False
 
+    def __repr__(self):
+        return f"starting: {self.starting_tile}"
+
 
 class Pawn(Piece):
     # value of piece defined here, this will be used to calculate material later

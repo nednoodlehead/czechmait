@@ -1,13 +1,14 @@
 # purpose of this file is to take in a chessboard as data, and analyze the position
 from image import export
-from empty.empty import Empty
-from pieces.pieces import Pawn, Bishop, Knight, Rook, Queen, King
+from board.empty import Empty
+from board.pieces import Pawn, Bishop, Knight, Rook, Queen, King
 from tests.boards import enpass, default_board
-
 
 
 class ChessBoard:
     score = 0
+    missing_pieces_black = []
+    missing_pieces_white = []
 
     def __init__(self, board=default_board):
         self.board = board
@@ -311,17 +312,17 @@ class ChessBoard:
         if len(notation) == 3:
             if turn == "black":
                 # black short castle:
-                return ("e8", "g8", King), ("h8", "f8", Rook)
+                return "e8", "g8", King, ("h8", "f8", Rook)
             else:
                 # white short castle:
-                return ("e1", "g1", King), ("h1", "f1", Rook)
+                return "e1", "g1", King, ("h1", "f1", Rook)
         else:
             if turn == "black":
                 # black long castle
-                return ("e8", "c8", King), ("a8", "d8", Rook)
+                return "e8", "c8", King, ("a8", "d8", Rook)
             else:
                 # white long castle
-                return ("e1", "c1", King), ("ai", "d1", Rook)
+                return "e1", "c1", King, ("ai", "d1", Rook)
 
     def notation_translation(self, notation, turn):
         """
@@ -358,30 +359,63 @@ class ChessBoard:
             notation = self.fix_notation(notation)
             return self.king_search(notation, turn)
 
-    def update_board(self, tile_old, tile_new, type_piece):
+    def update_board(self, tile_old, tile_new, type_piece, extra=None):
         """
-        interface to update the board with tile piece starts on, and tile it ends on
+        interface to update self.board with tile piece starts on, and tile it ends on
         :param tile_old: tile that the given piece begins on. Will become 'Empty()'
         :param tile_new: tile that the given piece moves to. Will inherit the instance of tile_old
         :param type_piece: check is done so if type_piece != piece instance, a pawn promotion has occured, and a new
                            piece is created on that tile
+       :param extra: extra params passed in. Used for castling and en passant, as they affect multiple tiles. Passed in
+       as tuple
         Modifies self.board
         """
+        if extra is not None:
+            # if a castle occurs:
+            if len(extra) == 3:
+                # move the king to the new location
+                self.board[tile_new] = self.board[tile_old]
+                # move the rook to the new location
+                self.board[extra[1]] = self.board[extra[0]]
+                # set the rook's old position to empty()
+                self.board[extra[0]] = Empty()
+                # set the king's position to empty()
+                self.board[tile_old] = Empty()
+            # in case of en passant
+            else:
+                # piece that is being removed, if empty, nothing is being removed
+                # the piece that is moving:
+                moving_piece = self.board[tile_old]
+                # setting the old piece's tile as empty
+                self.board[tile_old] = Empty()
+                # making the new tile = the piece that is moving
+                self.board[tile_new] = moving_piece
+                # if the tile is not occupied by 'Empty', add that piece that is being taken to piece_list
+                if not isinstance(self.board[tile_new], Empty):
+                    if self.board[tile_new].color == "black":
+                        self.missing_pieces_black.append(self.board[tile_new])
+                    else:
+                        self.missing_pieces_white.append(self.board[tile_new])
+        else:
+            # if the type of the square before is not the same as what it will be after, a pawn promotion has occured
+            # and, we will create a new instance of that type on the new
+            if not isinstance(self.board[tile_old], type_piece):
+                # we will make a new instance of that type, passing in the color, and the starting tile
+                new_piece = type_piece(self.board[tile_old].color, tile_new)
+            else:
+                new_piece = self.board[tile_old]
+            # setting the old piece's tile as empty
+            self.board[tile_old] = Empty()
+            # making the new tile = the piece that is moving
+            self.board[tile_new] = new_piece
+            # if the tile is not occupied by 'Empty', add that piece that is being taken to piece_list
+            if not isinstance(self.board[tile_new], Empty):
+                if self.board[tile_new].color == "black":
+                    self.missing_pieces_black.append(self.board[tile_new])
+                else:
+                    self.missing_pieces_white.append(self.board[tile_new])
 
-    def move_piece(self, notation, optional=None):
-        """
-        moves the pieces within self.board
-        :param notation:
-        :param optional:
-        :return:
-        """
-        pass
 
 
-
-chs = ChessBoard(enpass)
-
-x = chs.notation_translation("exd6", "white")
-print(x)
 
 

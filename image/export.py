@@ -1,6 +1,6 @@
 from PIL import Image
 import os.path
-from empty.empty import Empty
+from board.empty import Empty
 
 
 def generate_map():
