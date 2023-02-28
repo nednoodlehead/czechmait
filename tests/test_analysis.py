@@ -3,6 +3,7 @@ from board.empty import Empty
 from board.pieces import Pawn, Bishop, Knight, Rook, Queen, King
 from board.tile import Tile
 from board.chessboard import ChessBoard
+from board.color import Black, White
 
 @pytest.fixture()
 def board():
@@ -92,12 +93,12 @@ def enpassant_board():
 
 def test_notation_translation(board: ChessBoard, castle_board: ChessBoard, enpassant_board: ChessBoard):
     #                                notation, color       starting tile, ending tile, piece that will be on ending tile
-    assert board.notation_translation("Raxb5", "black") == ("a5", "b5", Rook)
-    assert board.notation_translation("Bf5", "black") == ("d7", "f5", Bishop)
-    assert board.notation_translation("exd8=Q", "white") == ("e7", "d8", Queen)
-    assert board.notation_translation("e5", "white") == ("e4", "e5", Pawn)
-    assert board.notation_translation("Qgxh8", "white") == ("g8", "h8", Queen)
-    assert board.notation_translation("Nc6", "black") == ("b8", "c6", Knight)
-    assert castle_board.notation_translation("0-0-0", "black") == (("e8", "c8", King), ("a8", "d8", Rook))
-    assert castle_board.notation_translation("O-O", "white") == (("e1", "g1", King), ("h1", "f1", Rook))
-    assert enpassant_board.notation_translation("exd6", "white") == (("e5", "d6", Pawn), ("d5", Empty))
+    assert board.notation_translation("Raxb5", Black) == ("a5", "b5", Rook)
+    assert board.notation_translation("Bf5", Black) == ("d7", "f5", Bishop)
+    assert board.notation_translation("exd8=Q", White) == ("e7", "d8", Queen)
+    assert board.notation_translation("e5", White) == ("e4", "e5", Pawn)
+    assert board.notation_translation("Qgxh8", White) == ("g8", "h8", Queen)
+    assert board.notation_translation("Nc6", Black) == ("b8", "c6", Knight)
+    assert castle_board.notation_translation("0-0-0", Black) == ("e8", "c8", King, ("a8", "d8", Rook))
+    assert castle_board.notation_translation("O-O", White) == ("e1", "g1", King, ("h1", "f1", Rook))
+    assert enpassant_board.notation_translation("exd6", White) == (("e5", "d6", Pawn), ("d5", Empty))

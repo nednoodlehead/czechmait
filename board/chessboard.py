@@ -3,7 +3,7 @@ from image import export
 from board.empty import Empty
 from board.pieces import Pawn, Bishop, Knight, Rook, Queen, King
 from tests.boards import enpass, default_board
-
+from board.color import Black, White
 
 class ChessBoard:
     score = 0
@@ -96,7 +96,7 @@ class ChessBoard:
                 new_str += letter
         return new_str
 
-    def pawn_search(self, notation, turn, taking):
+    def pawn_search(self, notation, turn: Black | White, taking):
         letter_map = {
             "Q": Queen,
             "N": Knight,
@@ -116,42 +116,26 @@ class ChessBoard:
         if taking:  # cxb5
             new_tile = notation[2:]
             # if it is white, mark the tile above and on the first-letter file
-            if turn == "white":
-                start_tile = notation[0] + str(int(notation[-1]) - 1)
-                # if the tile that is being taken has no piece, an espassant occured
-                if not self.is_occupied(new_tile):
-                    # if en passant is occuring, we return the tile being caputured, but also the update for the tile
-                    # that the piece dies on, which for white is -1 on numbers, -0 on letters
-                    # it will be parsed later that this extra arguement will set that tile to empty
-                    return (start_tile, new_tile, return_type), (self.convert_tile(new_tile, 0, -1), Empty)
-                    # represents the only tile on the board that a pawn could take a white piece on this square
-                return start_tile, new_tile, return_type
-            # if the color is black (all other cases were removed on the valueError above
-            else:
-                # start tile for black, black plays downwards
-                start_tile = notation[0] + str(int(notation[-1]) + 1)
-                if not self.is_occupied(new_tile):
-                    return (start_tile, new_tile, return_type), (self.convert_tile(new_tile, 0, 1), Empty)
+            start_tile = notation[0] + str(int(notation[-1]) - 1)
+            # if the tile that is being taken has no piece, an espassant occured
+            if not self.is_occupied(new_tile):
+                # if en passant is occuring, we return the tile being caputured, but also the update for the tile
+                # that the piece dies on, which for white is -1 on numbers, -0 on letters
+                # it will be parsed later that this extra arguement will set that tile to empty
+                # turn.pawn_coming_from() tells us which direction (-1 for white, 1+ for black) the pawn is coming from
+                # this is needed to make the extra args define Empty to the correct tile
+                return (start_tile, new_tile, return_type), (self.convert_tile(new_tile, 0, turn.pawn_coming_from()), Empty)
+                # represents the only tile on the board that a pawn could take a white piece on this square
             return start_tile, new_tile, return_type
         # there is no taking notation, it is a pawn move. e.g. b3
         else:
-            if turn == "white":
-                # if the position below the notation is empty, the pawn did a double jump, so starting pos -> 4th
-                if isinstance(self.get_tile(f"{notation[0]}{str(int(notation[1]) - 1)}"), Empty):
-                    # pawn did do a double jump:
-                    return notation[0] + str(int(notation[1]) - 2), notation, return_type
-                else:
-                    # pawn did not do a double jump
-                    return notation[0] + str(int(notation[1]) - 1), notation, return_type
-            # if it is blacks turn
+            # if the position below the notation is empty, the pawn did a double jump, so starting pos -> 4th
+            if isinstance(self.get_tile(f"{notation[0]}{str(int(notation[1]) + turn.value(1))}"), Empty):
+                # pawn did do a double jump:
+                return notation[0] + str(int(notation[1]) - turn.value(2)), notation, return_type
             else:
-                # if the position above the notation is empty, the pawn did a double jump, so starting pos -> 5th
-                if isinstance(self.get_tile(f"{notation[0]}{str(int(notation[1]) + 1)}"), Empty):
-                    # the pawn did do a double jump
-                    return notation[0] + str(int(notation[1]) + 2), notation, return_type
-                else:
-                    # the pawn did not do a double jump
-                    return notation[0] + str(int(notation[1]) + 1), notation, return_type
+                # pawn did not do a double jump
+                return notation[0] + str(int(notation[1]) - turn.value(1)), notation, return_type
 
     def rook_search(self, notation, turn, piece):
         # check for the edge case that the notation is 5 long, and it is like: Rd5b5. so d5 -> b5
@@ -190,7 +174,7 @@ class ChessBoard:
             # if it is an instance of the desired piece (Rook or Queen)
             if isinstance(self.board[tile], piece):
                 # if it is the color of the playing turn
-                if self.board[tile].color == turn:
+                if self.board[tile].color == turn.color:
                     # return the tile
                     return tile
                 # break if it reaches an enemy queen or rook (is instance of one, not same color)
@@ -214,7 +198,7 @@ class ChessBoard:
             if tile:
                 if isinstance(self.board[tile], Knight):
                     # if the color of the knight matches the current move (white to play)
-                    if self.board[tile].color == turn:
+                    if self.board[tile].color == turn.color:
                         nearby_knights.append(tile)
         if len(nearby_knights) == 0:
             raise ValueError("Invalid notation given with current board")
@@ -258,7 +242,7 @@ class ChessBoard:
                     break
 
                 elif isinstance(self.board[new_tile], piece):
-                    if self.board[new_tile].color == turn:
+                    if self.board[new_tile].color == turn.color:
                         bishop_tiles.append(new_tile)
                         break
                 elif self.is_occupied(new_tile):
@@ -310,14 +294,14 @@ class ChessBoard:
     @staticmethod
     def handle_casting(notation, turn):
         if len(notation) == 3:
-            if turn == "black":
+            if turn == Black:
                 # black short castle:
                 return "e8", "g8", King, ("h8", "f8", Rook)
             else:
                 # white short castle:
                 return "e1", "g1", King, ("h1", "f1", Rook)
         else:
-            if turn == "black":
+            if turn == Black:
                 # black long castle
                 return "e8", "c8", King, ("a8", "d8", Rook)
             else:
@@ -335,7 +319,7 @@ class ChessBoard:
         # if "x" is in the notation, we turn taking to true, so we can parse a bit easier
         taking = True if "x" in notation else False
         # ensure that turn is a correct param
-        if turn not in ["black", "white"]:
+        if turn not in [Black, White]:
             raise ValueError(f"Incorrect turn given :: {turn}")
         # if the first letter is not a capital, it is a pawn move. e.g. b5 or h3
         if ord(notation[0]) > 90 or ord(notation[0]) < 65:
