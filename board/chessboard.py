@@ -1,28 +1,51 @@
 # purpose of this file is to take in a chessboard as data, and analyze the position
+import tests.boards
 from image import export
 from board.empty import Empty
-from board.pieces import Pawn, Bishop, Knight, Rook, Queen, King
-from tests.boards import enpass, default_board
+from board.pieces import Piece, EnpassantRemnant, Pawn, Bishop, Knight, Rook, Queen, King
+from tests.boards import enpass, default_board, enpass_real
 from board.color import Black, White
+
 
 class ChessBoard:
     score = 0
     missing_pieces_black = []
     missing_pieces_white = []
+    # tiles that have an enpassant remnant on them
+    enpassant_tile = []
 
     def __init__(self, board=default_board):
         self.board = board
 
     def is_occupied(self, tile):
-        # is the passed in tile an instance of "Empty" (empty chess slot)
-        if isinstance(self.board[tile], Empty):
-            return False
-        else:
+        # if the passed in tile is any type that inherits 'Piece', this does not cover en passant remnants
+        if isinstance(self.board[tile], Piece):
             return True
+        else:
+            return False
 
     # export the current board to a png
     def export_png(self):
         export.hashmap_to_png(self.board)
+
+    @staticmethod
+    def handle_enpassant_remnant(board):
+        """
+        function to reduce all enpassant remnant 'decay' values by 1 and check if it is 0. If it is 0, remove remnant
+        modifies self.board
+
+        This should eventually be overhauled into Chessboard.board being its own type with associated piece counts &
+        en passant lists, so this can be more effecient by first checking if there are any enpassant remnants. Because
+        the average board doesn't have it, so there is a lot of redundant calculation. should work anyway
+        """
+        for tile, piece in board.items():
+            if isinstance(piece, EnpassantRemnant):
+                # remove one from decay
+                piece.decay -= 1
+                # if decay is at 0, we can remove the remnant
+                if piece.decay == 0:
+                    board[tile] = Empty()
+        return board
 
     # used to see nearby tiles through calculations
     @staticmethod
@@ -48,23 +71,40 @@ class ChessBoard:
 
     def is_occupied_enemy(self, tile, color):
         """
-        Returns a bool based on if the given tile is occupied by opposite color
+        Returns a bool based on if the given tile is occupied by opposite color. Does not include enpassant remnant
         :param tile: Tile, tile to inspect (tile class)
         :param color: str, either white or black, the color of the player querying
         :returns bool: is it occupied by enemy piece? aka, can it be taken?
+        """
+        if color.lower() == "black":
+            # check that it is of color white, and it is not an enpassant remnant
+            if self.board[tile].color == "white" and isinstance(self.board[tile], Piece):
+                return True
+            else:
+                return False
+        else:
+            if self.board[tile].color == "black" and isinstance(self.board[tile], Piece):
+                return True
+            else:
+                return False
+
+    def pawn_is_occupied_enemy(self, tile, color):
+        """
+        returns a bool based on if the given tile is of any enemy type, including enpassant remnants
+        :param tile: str, tile to inspect
+        :param color: str, color of the current turn
+        :return: bool (it is occupied by enemy or not)
         """
         if color.lower() == "black":
             if self.board[tile].color == "white":
                 return True
             else:
                 return False
-        elif color.lower() == "white":
+        else:
             if self.board[tile].color == "black":
                 return True
             else:
                 return False
-        else:
-            raise ValueError(f"Did not input black or white :: {color}")
 
     def get_color(self, tile):
         """
@@ -292,6 +332,17 @@ class ChessBoard:
             return bishop_results
 
     @staticmethod
+    def pawn_diff(tile_1, tile_2):
+        """
+        checks if the pawn did a double jump, needed for deciding to leave en passant remnant
+        :return:
+        """
+        if int(tile_1[1]) - int(tile_2[1]) not in [-1, 1]:
+            return True
+        else:
+            return False
+
+    @staticmethod
     def handle_casting(notation, turn):
         if len(notation) == 3:
             if turn == Black:
@@ -343,63 +394,68 @@ class ChessBoard:
             notation = self.fix_notation(notation)
             return self.king_search(notation, turn)
 
-    def update_board(self, tile_old, tile_new, type_piece, extra=None):
+    def update_board(self, board, tile_old, tile_new, type_piece, extra=None):
         """
         interface to update self.board with tile piece starts on, and tile it ends on
+        :param board: chessboard.board type to modify. dict of Tile() and Piece() types
         :param tile_old: tile that the given piece begins on. Will become 'Empty()'
         :param tile_new: tile that the given piece moves to. Will inherit the instance of tile_old
         :param type_piece: check is done so if type_piece != piece instance, a pawn promotion has occured, and a new
                            piece is created on that tile
        :param extra: extra params passed in. Used for castling and en passant, as they affect multiple tiles. Passed in
        as tuple
-        Modifies self.board
+        :returns modified board type
         """
+        # calls the enpassant checker, will handle the enpassant remnants
+        board = self.handle_enpassant_remnant(board)
         if extra is not None:
             # if a castle occurs:
             if len(extra) == 3:
                 # move the king to the new location
-                self.board[tile_new] = self.board[tile_old]
+                board[tile_new] = board[tile_old]
                 # move the rook to the new location
-                self.board[extra[1]] = self.board[extra[0]]
+                board[extra[1]] = board[extra[0]]
                 # set the rook's old position to empty()
-                self.board[extra[0]] = Empty()
+                board[extra[0]] = Empty()
                 # set the king's position to empty()
-                self.board[tile_old] = Empty()
+                board[tile_old] = Empty()
             # in case of en passant
             else:
                 # piece that is being removed, if empty, nothing is being removed
                 # the piece that is moving:
-                moving_piece = self.board[tile_old]
+                moving_piece = board[tile_old]
                 # setting the old piece's tile as empty
-                self.board[tile_old] = Empty()
+                board[tile_old] = Empty()
                 # making the new tile = the piece that is moving
-                self.board[tile_new] = moving_piece
+                board[tile_new] = moving_piece
                 # if the tile is not occupied by 'Empty', add that piece that is being taken to piece_list
-                if not isinstance(self.board[tile_new], Empty):
-                    if self.board[tile_new].color == "black":
-                        self.missing_pieces_black.append(self.board[tile_new])
+                if not isinstance(board[tile_new], Empty):
+                    if board[tile_new].color == "black":
+                        self.missing_pieces_black.append(board[tile_new])
                     else:
-                        self.missing_pieces_white.append(self.board[tile_new])
+                        self.missing_pieces_white.append(board[tile_new])
         else:
+            if isinstance(type_piece, Pawn) and self.pawn_diff(tile_old, tile_new):
+                # copy the new square with the old square (occupant)
+                board[tile_new] = board[tile_old]
+                board[tile_old] = Empty()
+                if board[tile_new].color == "black":
+                    color_and_value = -1, "black"
+                else:
+                    color_and_value = +1, "white"
+                board[self.convert_tile(tile_old, 0, color_and_value[0])] = EnpassantRemnant(color_and_value[1])
+
             # if the type of the square before is not the same as what it will be after, a pawn promotion has occured
             # and, we will create a new instance of that type on the new
-            if not isinstance(self.board[tile_old], type_piece):
+            if not isinstance(board[tile_old], type_piece):
                 # we will make a new instance of that type, passing in the color, and the starting tile
-                new_piece = type_piece(self.board[tile_old].color, tile_new)
+                new_piece = type_piece(board[tile_old].color, tile_new)
             else:
-                new_piece = self.board[tile_old]
+                new_piece = board[tile_old]
             # setting the old piece's tile as empty
-            self.board[tile_old] = Empty()
+            board[tile_old] = Empty()
             # making the new tile = the piece that is moving
-            self.board[tile_new] = new_piece
-            # if the tile is not occupied by 'Empty', add that piece that is being taken to piece_list
-            if not isinstance(self.board[tile_new], Empty):
-                if self.board[tile_new].color == "black":
-                    self.missing_pieces_black.append(self.board[tile_new])
-                else:
-                    self.missing_pieces_white.append(self.board[tile_new])
-
-
-
-
+            board[tile_new] = new_piece
+            # do we need a way to keep track of pieces off the board?
+        return board
 
