@@ -2,6 +2,9 @@
 # black = -1. Represents where the pawns can move
 class Black:
     color = "black"
+    opposite_color = "white"
+    pawn_starting_rank = "7"
+    pawn_promotion_rank = "1"
 
     @staticmethod
     def value(other: int):
@@ -14,6 +17,9 @@ class Black:
 
 class White:
     color = "white"
+    opposite_color = "black"
+    pawn_starting_rank = "2"
+    pawn_promotion_rank = "8"
 
     @staticmethod
     def value(other: int):
