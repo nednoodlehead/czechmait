@@ -16,11 +16,13 @@ def hashmap_to_png(board: dict):
     piece_key = generate_map()
     png_board = Image.open("./resources/chessboard.png")
     for key, value in board.items():
+        # this covers enpassant remnants, they will have their name set to empty, we can just ignore it...
         if not isinstance(value, Empty):
+            if value.name == Empty:
+                pass
             y_value, x_value = tile_to_pixels(key.tile)
             png_board.paste(piece_key[value.name], (y_value, x_value), piece_key[value.name])
     png_board.save("OUTPUT.png")
-
 
 
 def tile_to_pixels(tile: str) -> (int, int):
