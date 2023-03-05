@@ -70,5 +70,98 @@ def pawn_analysis(board: ChessBoard, tile: str, color: type(Black) | type(White)
     return ret_list
 
 
+def bishop_analysis(board: ChessBoard, tile: str, color: type(Black) | type(White)):
+    # this bit unironically copy and pasted from chessboard.py's bishop_search
+    operators = [("+", "+"), ("+", "-"), ("-", "+"), ("-", "-")]
+    # will contain list of available moves where the bishop could have moved from
+    piece_instances = []
+    # for each pair of operators:
+    for operator_pair in operators:
+        # count represents going just one square at a time
+        count = 1
+        # loop over each option of a diagonal (a1, b2, c3, d4...)
+        while True:
+            # create the x and y of the tile to pass to convert_tile (e.g. -1, +1 or +3, +3)
+            increment_number_1 = int(operator_pair[0] + str(count))
+            increment_number_2 = int(operator_pair[1] + str(count))
+            # convert the numbers into a tile, relative to starting tile
+            new_tile = board.convert_tile(tile, increment_number_1, increment_number_2)
+            # if the tile is occupied by bishop or queen, append to list, and break. As more bishops have no impact
+            if new_tile is None:
+                break
+            elif board.is_occupied_enemy(new_tile, color.color):
+                piece_instances.append(new_tile)
+                break
+            elif board.is_occupied(new_tile):
+                break
+            else:
+                piece_instances.append(new_tile)
+            count += 1
+    return piece_instances
 
 
+def knight_analysis(board: ChessBoard, tile: str, color: type(Black) | type(White)):
+    tile_list = [(1, 2), (-1, 2), (2, -1), (2, 1), (-2, 1), (-2, -1), (1, -2), (-1, -2)]
+    # used to store the list of the knights that are able to make the coordinate move. Usuaully, it is just one,
+    # but multiple are used if notation
+    piece_instances = []
+    # for each of the coordinates:
+    for coords in tile_list:
+        # create the new tile to query
+        new_tile = board.convert_tile(tile, coords[0], coords[1])
+        # if the occupant of the tile is a knight, add to knight list
+        if not new_tile:
+            pass
+        else:
+            if board.is_occupied(new_tile):
+                if board.is_occupied_enemy(new_tile, color.color):
+                    piece_instances.append(new_tile)
+            else:
+                piece_instances.append(new_tile)
+    return piece_instances
+
+
+def rook_analysis(board: ChessBoard, tile: str, color: type(Black) | type(White)):
+    piece_instances = []
+    # a var to hold to notation. assumes post-self.fix_notation
+    # these are the sets that represent going negative and positive in each direction
+    num_sets = [(1, 0), (0, 1), (-1, 0), (0, -1)]
+    # iterate over each set
+    for num in num_sets:
+        val_1, val_2 = num[0], num[1]
+        while True:
+            new_tile = board.convert_tile(tile, val_1, val_2)
+            print(new_tile)
+            if not new_tile:
+                break
+            elif board.is_occupied_enemy(new_tile, color.color):
+                piece_instances.append(new_tile)
+                break
+            elif board.is_occupied(new_tile):
+                break
+            else:
+                piece_instances.append(new_tile)
+            val_1 += num[0]
+            val_2 += num[1]
+    return piece_instances
+
+
+def queen_analysis(board: ChessBoard, tile: str, color: type(Black) | type(White)):
+    return rook_analysis(board, tile, color) + bishop_analysis(board, tile, color)
+
+
+def king_analysis(board: ChessBoard, tile: str, color: type(Black) | type(White)):
+    # possible coordinate spots from the king
+    spots = [(0, 1), (0, -1), (1, 0), (1, -1), (1, 1), (-1, 0), (-1, 1), (-1, -1)]
+    possible_moves = []
+    # iterate over them
+    for coords in spots:
+        new_tile = board.convert_tile(tile, coords[0], coords[1])
+        if not new_tile:
+            continue
+        # if the tile being checked is empty:
+        if not board.is_occupied(new_tile):
+            possible_moves.append(new_tile)
+        elif board.is_occupied_enemy(new_tile, color.color):
+            possible_moves.append(new_tile)
+    return possible_moves
