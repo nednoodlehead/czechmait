@@ -3,7 +3,7 @@ import tests.boards
 from image import export
 from board.empty import Empty
 from board.pieces import Piece, EnpassantRemnant, Pawn, Bishop, Knight, Rook, Queen, King
-from tests.boards import enpass, default_board, enpass_real
+from tests.boards import enpass, default_board, enpass_real, testing_board
 from board.color import Black, White
 
 
@@ -262,7 +262,7 @@ class ChessBoard:
                 :param piece: either Queen or Bishop
                 :param turn: "black" or "white"
                 :return: either None (No valid pieces found) or "<tile> <tile>": "b3", "a2"
-                """
+        """
         operators = [("+", "+"), ("+", "-"), ("-", "+"), ("-", "-")]
         # will contain list of available moves where the bishop could have moved from
         bishop_tiles = []
@@ -458,4 +458,3 @@ class ChessBoard:
             board[tile_new] = new_piece
             # do we need a way to keep track of pieces off the board?
         return board
-

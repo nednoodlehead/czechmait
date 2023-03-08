@@ -34,7 +34,7 @@ testing_board = {
     Tile("b2"): Pawn("white", "b2"), Tile("b3"): Empty(), Tile("b4"): Empty(),
     Tile("b5"): Pawn("white", "b7"), Tile("b6"): Empty(), Tile("b7"): Empty(),
     Tile("b8"): Knight("black", "b8"), Tile("c1"): Bishop("white", "c1"), Tile("c2"): Pawn("white", "c2"),
-    Tile("c3"): Empty(), Tile("c4"): Empty(), Tile("c5"): Empty(),
+    Tile("c3"): Empty(), Tile("c4"): Knight("white", "c4"), Tile("c5"): Empty(),
     Tile("c6"): Empty(), Tile("c7"): Pawn("black", "c7"), Tile("c8"): Bishop("black", "c8"),
     Tile("d1"): Empty(), Tile("d2"): Pawn("white", "d2"), Tile("d3"): Empty(),
     Tile("d4"): Empty(), Tile("d5"): Empty(), Tile("d6"): Empty(),
