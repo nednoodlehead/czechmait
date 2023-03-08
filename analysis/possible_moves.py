@@ -12,7 +12,7 @@ def pawn_analysis(board: ChessBoard, tile: str, color: type(Black) | type(White)
     :param board: chessboard that is being analyzed
     :param tile: the tile that the pawn is currently on
     :param color: the color moving
-    :return: list of tuples (piece_starting, piece_ending, piece_occupying, chessboard, (extra params)),
+    :return: list of tuples (piece_starting, piece_ending, piece_occupying, (extra params)),
     chessboard is the board if that move is done
     piece occupying is a type of piece, Pawn, Knight, etc... that will be on that square
     extra params is for castling and en passant where multiple
@@ -24,21 +24,17 @@ def pawn_analysis(board: ChessBoard, tile: str, color: type(Black) | type(White)
     # if that tile is not occupied
     if board.is_occupied(front_tile) is False:
         # append all of that to the new return list
-        ret_list.append((tile, front_tile, Pawn, board.update_board(board.board, tile, front_tile, Pawn)))
+        ret_list.append((front_tile, Pawn))
         if front_tile[1] == color.pawn_promotion_rank and not board.is_occupied(front_tile):
             for promotion_option in promotion_list:
                 # add each promotion option to available moves
-                ret_list.append((tile, front_tile, promotion_option, board.update_board(board.board, tile,
-                                                                                        front_tile,
-                                                                                        promotion_option)))
+                ret_list.append((tile, front_tile, promotion_option))
         # two tiles infront of the pawn in question
         two_infront = board.convert_tile(front_tile, 0, color.value(1))
         # if there is two empty squares (the closest coming from the above if statement) and pawn is on starting rank
         # it is allowed to double jump
         if not board.is_occupied(two_infront) and tile[1] == color.pawn_starting_rank:
-            ret_list.append((tile, two_infront, Pawn, board.update_board(board.board, tile, two_infront, Pawn),
-                             # append the tile where we will place the enpassant remnant, and the type
-                             (front_tile, EnpassantRemnant)))
+            ret_list.append((two_infront, Pawn, (front_tile, EnpassantRemnant)))
     # this is the tile in the left most side (white perspective) for either color
     front_left_and_right_tile = [board.convert_tile(tile, 1, color.value(1)), board.convert_tile(tile, -1, color.value(1))]
     # if that tile is occupied, we can take it, so we can add it to return list in a second:
@@ -51,26 +47,17 @@ def pawn_analysis(board: ChessBoard, tile: str, color: type(Black) | type(White)
             if front_tiles[1] == color.pawn_promotion_rank:
                 for promotion_option in promotion_list:
                     # add each promotion option to available moves
-                    ret_list.append((tile, front_tiles,
-                                     promotion_option, board.update_board(board.board, tile, front_tiles,
-                                                                          promotion_option)))
+                    ret_list.append((front_tiles, promotion_option))
                     # the extra param passed through is the tile where the current pawn is, and it will be replaced by
                     # Empty
             else:
                 # so if the tile is occupied by enemy, we can do that move, with the check for promotion rank failing
                 # we just append
-                ret_list.append((tile, front_tiles, Pawn, board.update_board(board.board, tile, front_tiles, Pawn,
-                                                                             (board.convert_tile(front_tiles, 0,
-                                                                                                 color.
-                                                                                                 pawn_coming_from()
-                                                                                                 ), Empty))))
-                # if it not a promotion rank, only a pawn can occupy that square from a pawn move
-                # print("added 5")
-                # ret_list.append((tile, front_tiles, Pawn, board.update_board(board.board, tile, front_tiles, Pawn)))
+                ret_list.append((front_tiles, Pawn))
     return ret_list
 
 
-def bishop_analysis(board: ChessBoard, tile: str, color: type(Black) | type(White)):
+def bishop_analysis(board: ChessBoard, tile: str, color: type(Black) | type(White), piece):
     # this bit unironically copy and pasted from chessboard.py's bishop_search
     operators = [("+", "+"), ("+", "-"), ("-", "+"), ("-", "-")]
     # will contain list of available moves where the bishop could have moved from
@@ -90,12 +77,12 @@ def bishop_analysis(board: ChessBoard, tile: str, color: type(Black) | type(Whit
             if new_tile is None:
                 break
             elif board.is_occupied_enemy(new_tile, color.color):
-                piece_instances.append(new_tile)
+                piece_instances.append((new_tile, piece))
                 break
             elif board.is_occupied(new_tile):
                 break
             else:
-                piece_instances.append(new_tile)
+                piece_instances.append((new_tile, piece))
             count += 1
     return piece_instances
 
@@ -115,13 +102,13 @@ def knight_analysis(board: ChessBoard, tile: str, color: type(Black) | type(Whit
         else:
             if board.is_occupied(new_tile):
                 if board.is_occupied_enemy(new_tile, color.color):
-                    piece_instances.append(new_tile)
+                    piece_instances.append((new_tile, Knight))
             else:
-                piece_instances.append(new_tile)
+                piece_instances.append((new_tile, Knight))
     return piece_instances
 
 
-def rook_analysis(board: ChessBoard, tile: str, color: type(Black) | type(White)):
+def rook_analysis(board: ChessBoard, tile: str, color: type(Black) | type(White), piece):
     piece_instances = []
     # a var to hold to notation. assumes post-self.fix_notation
     # these are the sets that represent going negative and positive in each direction
@@ -131,23 +118,22 @@ def rook_analysis(board: ChessBoard, tile: str, color: type(Black) | type(White)
         val_1, val_2 = num[0], num[1]
         while True:
             new_tile = board.convert_tile(tile, val_1, val_2)
-            print(new_tile)
             if not new_tile:
                 break
             elif board.is_occupied_enemy(new_tile, color.color):
-                piece_instances.append(new_tile)
+                piece_instances.append((new_tile, piece))
                 break
             elif board.is_occupied(new_tile):
                 break
             else:
-                piece_instances.append(new_tile)
+                piece_instances.append((new_tile, piece))
             val_1 += num[0]
             val_2 += num[1]
     return piece_instances
 
 
 def queen_analysis(board: ChessBoard, tile: str, color: type(Black) | type(White)):
-    return rook_analysis(board, tile, color) + bishop_analysis(board, tile, color)
+    return rook_analysis(board, tile, color, Queen) + bishop_analysis(board, tile, color, Queen)
 
 
 def king_analysis(board: ChessBoard, tile: str, color: type(Black) | type(White)):
