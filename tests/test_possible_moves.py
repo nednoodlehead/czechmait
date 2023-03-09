@@ -4,7 +4,6 @@ from board.pieces import Pawn, Bishop, Knight, Rook, Queen, King, EnpassantRemna
 from board.tile import Tile
 from board.chessboard import ChessBoard
 from board.color import Black, White
-from analysis.possible_moves import pawn_analysis, knight_analysis, bishop_analysis, rook_analysis, queen_analysis, king_analysis
 
 
 @pytest.fixture()
@@ -37,22 +36,22 @@ def board():
 
 
 def test_available_move(board: ChessBoard):
-    assert pawn_analysis(board, "e7", White) == [("f8", Knight), ("f8", Bishop), ("f8", Rook), ("f8", Queen),
+    assert board.board["e7"].analysis(board, "e7", White) == [("f8", Knight), ("f8", Bishop), ("f8", Rook), ("f8", Queen),
                                                  ("d8", Knight), ("d8", Bishop), ("d8", Rook), ("d8", Queen)]
-    assert pawn_analysis(board, "c7", Black) == [("c6", Pawn), ("c5", Pawn, ("c6", EnpassantRemnant))]
-    assert bishop_analysis(board, "f1", White, Bishop) == [("e2", Bishop), ("d3", Bishop)]
-    assert bishop_analysis(board, "d7", Black, Bishop) == [("e6", Bishop), ("f5", Bishop), ("g4", Bishop),
+    assert board.board["c7"].analysis(board, "c7", Black) == [("c6", Pawn), ("c5", Pawn, ("c6", EnpassantRemnant))]
+    assert board.board["f1"].analysis(board, "f1", White, Bishop) == [("e2", Bishop), ("d3", Bishop)]
+    assert board.board["d7"].analysis(board, "d7", Black, Bishop) == [("e6", Bishop), ("f5", Bishop), ("g4", Bishop),
                                                            ("h3", Bishop), ("c6", Bishop), ("b5", Bishop)]
-    assert knight_analysis(board, "c4", White) == [("d6", Knight), ("b6", Knight), ("e3", Knight), ("e5", Knight),
+    assert board.board["c4"].analysis(board, "c4", White) == [("d6", Knight), ("b6", Knight), ("e3", Knight), ("e5", Knight),
                                                    ("a5", Knight), ("a3", Knight)]
-    assert knight_analysis(board, "b8", Black) == [("c6", Knight), ("a6", Knight)]
-    assert rook_analysis(board, "h8", Black, Rook) == [("g8", Rook), ("h7", Rook), ("h6", Rook), ("h5", Rook)]
-    assert rook_analysis(board, "a5", Black, Rook) == [("b5", Rook), ("a6", Rook), ("a4", Rook), ("a3", Rook),
+    assert board.board["b8"].analysis(board, "b8", Black) == [("c6", Knight), ("a6", Knight)]
+    assert board.board["h8"].analysis(board, "h8", Black, Rook) == [("g8", Rook), ("h7", Rook), ("h6", Rook), ("h5", Rook)]
+    assert board.board["a5"].analysis(board, "a5", Black, Rook) == [("b5", Rook), ("a6", Rook), ("a4", Rook), ("a3", Rook),
                                                        ("a2", Rook)]
-    assert queen_analysis(board, "d8", Black) == [("e7", Queen)]
-    assert queen_analysis(board, "h5", White) == [("h6", Queen), ("h7", Queen), ("h8", Queen), ("g5", Queen),
+    assert board.board["d8"].analysis(board, "d8", Black) == [("e7", Queen)]
+    assert board.board["h5"].analysis(board, "h5", White) == [("h6", Queen), ("h7", Queen), ("h8", Queen), ("g5", Queen),
                                                   ("h4", Queen), ("h3", Queen), ("g6", Queen), ("f7", Queen),
                                                   ("g4", Queen), ("f3", Queen), ("e2", Queen), ("d1", Queen)]
-    assert king_analysis(board, "e1", White) == ["e2", "d1"]
-    assert king_analysis(board, "e8", Black) == ["e7"]
+    assert board.board["e1"].analysis(board, "e1", White) == ["e2", "d1"]
+    assert board.board["e8"].analysis(board, "e8", Black) == ["e7"]
     
