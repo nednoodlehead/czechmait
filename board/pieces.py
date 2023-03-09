@@ -10,6 +10,61 @@ class Piece:
         return f"starting: {self.starting_tile}"
 
 
+def diagonal_analysis(board, tile: str, piece):
+    color = board.board[tile].color
+    # this bit unironically copy and pasted from chessboard.py's bishop_search
+    operators = [("+", "+"), ("+", "-"), ("-", "+"), ("-", "-")]
+    # will contain list of available moves where the bishop could have moved from
+    piece_instances = []
+    # for each pair of operators:
+    for operator_pair in operators:
+        # count represents going just one square at a time
+        count = 1
+        # loop over each option of a diagonal (a1, b2, c3, d4...)
+        while True:
+            # create the x and y of the tile to pass to convert_tile (e.g. -1, +1 or +3, +3)
+            increment_number_1 = int(operator_pair[0] + str(count))
+            increment_number_2 = int(operator_pair[1] + str(count))
+            # convert the numbers into a tile, relative to starting tile
+            new_tile = board.convert_tile(tile, increment_number_1, increment_number_2)
+            # if the tile is occupied by bishop or queen, append to list, and break. As more bishops have no impact
+            if new_tile is None:
+                break
+            elif board.is_occupied_enemy(new_tile, color.color):
+                piece_instances.append((new_tile, piece))
+                break
+            elif board.is_occupied(new_tile):
+                break
+            else:
+                piece_instances.append((new_tile, piece))
+            count += 1
+    return piece_instances
+
+
+def horizontal_analysis(board, tile: str, piece):
+    color = board.board[tile].color
+    piece_instances = []
+    # a var to hold to notation. assumes post-self.fix_notation
+    # these are the sets that represent going negative and positive in each direction
+    num_sets = [(1, 0), (0, 1), (-1, 0), (0, -1)]
+    # iterate over each set
+    for num in num_sets:
+        val_1, val_2 = num[0], num[1]
+        while True:
+            new_tile = board.convert_tile(tile, val_1, val_2)
+            if not new_tile:
+                break
+            elif board.is_occupied_enemy(new_tile, color.color):
+                piece_instances.append((new_tile, piece))
+                break
+            elif board.is_occupied(new_tile):
+                break
+            else:
+                piece_instances.append((new_tile, piece))
+            val_1 += num[0]
+            val_2 += num[1]
+    return piece_instances
+
 class Pawn(Piece):
     # value of piece defined here, this will be used to calculate material later
     value = 1
@@ -21,17 +76,17 @@ class Pawn(Piece):
         self.name = f"{color}_pawn"
 
     @staticmethod
-    def analysis(board, tile: str, color: type(Black) | type(White)):
+    def analysis(board, tile: str):
         """
         function to analyze and return possible moves for specified pawn
         :param board: chessboard that is being analyzed
         :param tile: the tile that the pawn is currently on
-        :param color: the color moving
         :return: list of tuples (piece_starting, piece_ending, piece_occupying, (extra params)),
         chessboard is the board if that move is done
         piece occupying is a type of piece, Pawn, Knight, etc... that will be on that square
         extra params is for castling and en passant where multiple
         """
+        color = board.board[tile].color
         promotion_list = [Knight, Bishop, Rook, Queen]
         ret_list = []
         # get the tile in front of it, using the color's associated value
@@ -98,28 +153,8 @@ class Rook(Piece):
         self.name = f"{color}_rook"
 
     @staticmethod
-    def analysis(board, tile: str, color: type(Black) | type(White), piece):
-        piece_instances = []
-        # a var to hold to notation. assumes post-self.fix_notation
-        # these are the sets that represent going negative and positive in each direction
-        num_sets = [(1, 0), (0, 1), (-1, 0), (0, -1)]
-        # iterate over each set
-        for num in num_sets:
-            val_1, val_2 = num[0], num[1]
-            while True:
-                new_tile = board.convert_tile(tile, val_1, val_2)
-                if not new_tile:
-                    break
-                elif board.is_occupied_enemy(new_tile, color.color):
-                    piece_instances.append((new_tile, piece))
-                    break
-                elif board.is_occupied(new_tile):
-                    break
-                else:
-                    piece_instances.append((new_tile, piece))
-                val_1 += num[0]
-                val_2 += num[1]
-        return piece_instances
+    def analysis(board, tile: str):
+        return horizontal_analysis(board, tile, Rook)
 
 
 class Bishop(Piece):
@@ -131,34 +166,8 @@ class Bishop(Piece):
         self.name = f"{color}_bishop"
 
     @staticmethod
-    def analysis(board, tile: str, color: type(Black) | type(White), piece):
-        # this bit unironically copy and pasted from chessboard.py's bishop_search
-        operators = [("+", "+"), ("+", "-"), ("-", "+"), ("-", "-")]
-        # will contain list of available moves where the bishop could have moved from
-        piece_instances = []
-        # for each pair of operators:
-        for operator_pair in operators:
-            # count represents going just one square at a time
-            count = 1
-            # loop over each option of a diagonal (a1, b2, c3, d4...)
-            while True:
-                # create the x and y of the tile to pass to convert_tile (e.g. -1, +1 or +3, +3)
-                increment_number_1 = int(operator_pair[0] + str(count))
-                increment_number_2 = int(operator_pair[1] + str(count))
-                # convert the numbers into a tile, relative to starting tile
-                new_tile = board.convert_tile(tile, increment_number_1, increment_number_2)
-                # if the tile is occupied by bishop or queen, append to list, and break. As more bishops have no impact
-                if new_tile is None:
-                    break
-                elif board.is_occupied_enemy(new_tile, color.color):
-                    piece_instances.append((new_tile, piece))
-                    break
-                elif board.is_occupied(new_tile):
-                    break
-                else:
-                    piece_instances.append((new_tile, piece))
-                count += 1
-        return piece_instances
+    def analysis(board, tile: str):
+        return diagonal_analysis(board, tile, Bishop)
 
 
 class Knight(Piece):
@@ -170,7 +179,8 @@ class Knight(Piece):
         self.name = f"{color}_knight"
 
     @staticmethod
-    def analysis(board, tile: str, color: type(Black) | type(White)):
+    def analysis(board, tile: str):
+        color = board.board[tile].color
         tile_list = [(1, 2), (-1, 2), (2, -1), (2, 1), (-2, 1), (-2, -1), (1, -2), (-1, -2)]
         # used to store the list of the knights that are able to make the coordinate move. Usuaully, it is just one,
         # but multiple are used if notation
@@ -191,7 +201,7 @@ class Knight(Piece):
         return piece_instances
 
 
-class Queen(Rook, Bishop):
+class Queen(Piece):
     value = 9
 
     def __init__(self, color, starting_tile):
@@ -199,8 +209,9 @@ class Queen(Rook, Bishop):
         self.color = color
         self.name = f"{color}_queen"
 
-    def analysis(self, board, tile: str, color: type(Black) | type(White)):
-        return Rook.analysis(board, tile, color, Queen) + Bishop.analysis(board, tile, color, Queen)
+    @staticmethod
+    def analysis(board, tile: str):
+        return horizontal_analysis(board, tile, Queen) + diagonal_analysis(board, tile, Queen)
 
 
 class King(Piece):
