@@ -76,14 +76,14 @@ class ChessBoard:
         :param color: str, either white or black, the color of the player querying
         :returns bool: is it occupied by enemy piece? aka, can it be taken?
         """
-        if color.lower() == "black":
+        if color == Black:
             # check that it is of color white, and it is not an enpassant remnant
-            if self.board[tile].color == "white" and isinstance(self.board[tile], Piece):
+            if self.board[tile].color == White and isinstance(self.board[tile], Piece):
                 return True
             else:
                 return False
         else:
-            if self.board[tile].color == "black" and isinstance(self.board[tile], Piece):
+            if self.board[tile].color == Black and isinstance(self.board[tile], Piece):
                 return True
             else:
                 return False
@@ -92,29 +92,20 @@ class ChessBoard:
         """
         returns a bool based on if the given tile is of any enemy type, including enpassant remnants
         :param tile: str, tile to inspect
-        :param color: str, color of the current turn
+        :param color: White or Black, color of the current turn
         :return: bool (it is occupied by enemy or not)
         """
-        if color.lower() == "black":
-            if self.board[tile].color == "white":
+        if color == Black:
+            if self.board[tile].color == White:
                 return True
             else:
                 return False
         else:
-            if self.board[tile].color == "black":
+            if self.board[tile].color == Black:
                 return True
             else:
                 return False
 
-    def get_color(self, tile):
-        """
-        Returns either 'black', 'white' or none depending on the occupant of the tile
-        :param tile: tile to be queried (e.g. "b3")
-        """
-        if self.board[tile].color not in ["black", "white"]:
-            return None
-        else:
-            return self.board[tile].color
 
     def get_tile(self, tile):
         """Returns the desired tile instance from given input
@@ -214,7 +205,7 @@ class ChessBoard:
             # if it is an instance of the desired piece (Rook or Queen)
             if isinstance(self.board[tile], piece):
                 # if it is the color of the playing turn
-                if self.board[tile].color == turn.color:
+                if self.board[tile].color == turn:
                     # return the tile
                     return tile
                 # break if it reaches an enemy queen or rook (is instance of one, not same color)
@@ -238,7 +229,7 @@ class ChessBoard:
             if tile:
                 if isinstance(self.board[tile], Knight):
                     # if the color of the knight matches the current move (white to play)
-                    if self.board[tile].color == turn.color:
+                    if self.board[tile].color == turn:
                         nearby_knights.append(tile)
         if len(nearby_knights) == 0:
             raise ValueError("Invalid notation given with current board")
@@ -280,9 +271,8 @@ class ChessBoard:
                 # if the tile is occupied by bishop or queen, append to list, and break. As more bishops have no impact
                 if new_tile is None:
                     break
-
                 elif isinstance(self.board[new_tile], piece):
-                    if self.board[new_tile].color == turn.color:
+                    if self.board[new_tile].color == turn:
                         bishop_tiles.append(new_tile)
                         break
                 elif self.is_occupied(new_tile):
@@ -430,7 +420,7 @@ class ChessBoard:
                 board[tile_new] = moving_piece
                 # if the tile is not occupied by 'Empty', add that piece that is being taken to piece_list
                 if not isinstance(board[tile_new], Empty):
-                    if board[tile_new].color == "black":
+                    if board[tile_new].color == Black:
                         self.missing_pieces_black.append(board[tile_new])
                     else:
                         self.missing_pieces_white.append(board[tile_new])
@@ -439,7 +429,7 @@ class ChessBoard:
                 # copy the new square with the old square (occupant)
                 board[tile_new] = board[tile_old]
                 board[tile_old] = Empty()
-                if board[tile_new].color == "black":
+                if board[tile_new].color == Black:
                     color_and_value = -1, "black"
                 else:
                     color_and_value = +1, "white"
@@ -458,3 +448,8 @@ class ChessBoard:
             board[tile_new] = new_piece
             # do we need a way to keep track of pieces off the board?
         return board
+
+
+chs = ChessBoard(testing_board)
+x = chs.notation_translation("Raxb5", Black)
+print(x)

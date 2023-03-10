@@ -30,7 +30,7 @@ def diagonal_analysis(board, tile: str, piece):
             # if the tile is occupied by bishop or queen, append to list, and break. As more bishops have no impact
             if new_tile is None:
                 break
-            elif board.is_occupied_enemy(new_tile, color.color):
+            elif board.is_occupied_enemy(new_tile, color):
                 piece_instances.append((new_tile, piece))
                 break
             elif board.is_occupied(new_tile):
@@ -42,7 +42,7 @@ def diagonal_analysis(board, tile: str, piece):
 
 
 def horizontal_analysis(board, tile: str, piece):
-    color = board.board[tile].color
+    color = board.board[tile].color  # should access White not "white"
     piece_instances = []
     # a var to hold to notation. assumes post-self.fix_notation
     # these are the sets that represent going negative and positive in each direction
@@ -54,7 +54,7 @@ def horizontal_analysis(board, tile: str, piece):
             new_tile = board.convert_tile(tile, val_1, val_2)
             if not new_tile:
                 break
-            elif board.is_occupied_enemy(new_tile, color.color):
+            elif board.is_occupied_enemy(new_tile, color):
                 piece_instances.append((new_tile, piece))
                 break
             elif board.is_occupied(new_tile):
@@ -194,7 +194,7 @@ class Knight(Piece):
                 pass
             else:
                 if board.is_occupied(new_tile):
-                    if board.is_occupied_enemy(new_tile, color.color):
+                    if board.is_occupied_enemy(new_tile, color):
                         piece_instances.append((new_tile, Knight))
                 else:
                     piece_instances.append((new_tile, Knight))
@@ -223,7 +223,8 @@ class King(Piece):
         self.name = f"{color}_king"
 
     @staticmethod
-    def analysis(board, tile: str, color: type(Black) | type(White)):
+    def analysis(board, tile: str):
+        color = board.board[tile].color
         # possible coordinate spots from the king
         spots = [(0, 1), (0, -1), (1, 0), (1, -1), (1, 1), (-1, 0), (-1, 1), (-1, -1)]
         possible_moves = []
@@ -235,6 +236,6 @@ class King(Piece):
             # if the tile being checked is empty:
             if not board.is_occupied(new_tile):
                 possible_moves.append(new_tile)
-            elif board.is_occupied_enemy(new_tile, color.color):
+            elif board.is_occupied_enemy(new_tile, color):
                 possible_moves.append(new_tile)
         return possible_moves
