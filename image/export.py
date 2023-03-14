@@ -1,4 +1,4 @@
-from PIL import Image
+from PIL import Image, ImageFont, ImageDraw
 import os.path
 from board.empty import Empty
 
@@ -21,8 +21,9 @@ def hashmap_to_png(board: dict):
             if value.name == Empty:
                 pass
             y_value, x_value = tile_to_pixels(key.tile)
+            print(value.color)
             png_board.paste(piece_key[value.name], (y_value, x_value), piece_key[value.name])
-    png_board.save("OUTPUT.png")
+    png_board.save("regular_board.png")
 
 
 def tile_to_pixels(tile: str) -> (int, int):
@@ -49,8 +50,13 @@ def tile_to_pixels(tile: str) -> (int, int):
     return char_map[tile[0]], num_map[int(tile[1])]
 
 
-
-
-
-
-
+def generate_value_png(board: dict):
+    img = Image.open("./resources/chessboard.png")
+    font = ImageFont.truetype("./font/ArialNarrow7-9YJ9n.ttf", 45)
+    draw = ImageDraw.Draw(img)
+    for key, value in board.items():
+        print(f' value: {value}')
+        y_value, x_value = tile_to_pixels(key.tile)
+        # add 50 so the text is more centered on the square : )
+        draw.text((y_value + 25, x_value + 25), str(value), (0, 0, 0), font=font)
+    img.save("value_board.png")
