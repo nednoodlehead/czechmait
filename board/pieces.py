@@ -65,6 +65,7 @@ def horizontal_analysis(board, tile: str, piece):
             val_2 += num[1]
     return piece_instances
 
+
 class Pawn(Piece):
     # value of piece defined here, this will be used to calculate material later
     value = 1
@@ -73,7 +74,8 @@ class Pawn(Piece):
     def __init__(self, color, starting_tile):
         super().__init__(color, starting_tile)
         self.color = color
-        self.name = f"{color}_pawn"
+        # this turns into: white_pawn or black_pawn
+        self.name = f"{color.color}_pawn"
 
     @staticmethod
     def analysis(board, tile: str):
@@ -141,7 +143,7 @@ class EnpassantRemnant:  # does not inherit from 'Piece', because it is logicall
 
     def __init__(self, color):
         self.color = color
-        self.name = f"{color}_en"
+        self.name = f"{color.color}_en"
 
 
 class Rook(Piece):
@@ -150,7 +152,7 @@ class Rook(Piece):
     def __init__(self, color, starting_tile):
         super().__init__(color, starting_tile)
         self.color = color
-        self.name = f"{color}_rook"
+        self.name = f"{color.color}_rook"
 
     @staticmethod
     def analysis(board, tile: str):
@@ -163,7 +165,7 @@ class Bishop(Piece):
     def __init__(self, color, starting_tile):
         super().__init__(color, starting_tile)
         self.color = color
-        self.name = f"{color}_bishop"
+        self.name = f"{color.color}_bishop"
 
     @staticmethod
     def analysis(board, tile: str):
@@ -176,7 +178,7 @@ class Knight(Piece):
     def __init__(self, color, starting_tile):
         super().__init__(color, starting_tile)
         self.color = color
-        self.name = f"{color}_knight"
+        self.name = f"{color.color}_knight"
 
     @staticmethod
     def analysis(board, tile: str):
@@ -207,7 +209,7 @@ class Queen(Piece):
     def __init__(self, color, starting_tile):
         super().__init__(color, starting_tile)
         self.color = color
-        self.name = f"{color}_queen"
+        self.name = f"{color.color}_queen"
 
     @staticmethod
     def analysis(board, tile: str):
@@ -220,7 +222,7 @@ class King(Piece):
     def __init__(self, color, starting_tile):
         super().__init__(color, starting_tile)
         self.color = color
-        self.name = f"{color}_king"
+        self.name = f"{color.color}_king"
 
     @staticmethod
     def analysis(board, tile: str):
