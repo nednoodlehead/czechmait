@@ -6,8 +6,8 @@ class Piece:
         self.color = color
         self.starting_tile = starting_tile
 
-    def __repr__(self):
-        return f"starting: {self.starting_tile}"
+    # def __repr__(self):
+    #     return f"starting: {self.starting_tile}"
 
 
 def diagonal_analysis(board, tile: str, piece):
@@ -31,12 +31,12 @@ def diagonal_analysis(board, tile: str, piece):
             if new_tile is None:
                 break
             elif board.is_occupied_enemy(new_tile, color):
-                piece_instances.append((new_tile, piece))
+                piece_instances.append((tile, new_tile, piece))
                 break
             elif board.is_occupied(new_tile):
                 break
             else:
-                piece_instances.append((new_tile, piece))
+                piece_instances.append((tile, new_tile, piece))
             count += 1
     return piece_instances
 
@@ -55,15 +55,54 @@ def horizontal_analysis(board, tile: str, piece):
             if not new_tile:
                 break
             elif board.is_occupied_enemy(new_tile, color):
-                piece_instances.append((new_tile, piece))
+                piece_instances.append((tile, new_tile, piece))
                 break
             elif board.is_occupied(new_tile):
                 break
             else:
-                piece_instances.append((new_tile, piece))
+                piece_instances.append((tile, new_tile, piece))
             val_1 += num[0]
             val_2 += num[1]
     return piece_instances
+
+
+def knight_analysis(board, tile):
+    color = board.board[tile].color
+    tile_list = [(1, 2), (-1, 2), (2, -1), (2, 1), (-2, 1), (-2, -1), (1, -2), (-1, -2)]
+    # used to store the list of the knights that are able to make the coordinate move. Usuaully, it is just one,
+    # but multiple are used if notation
+    possible_moves = []
+    # for each of the coordinates:
+    for coords in tile_list:
+        # create the new tile to query
+        new_tile = board.convert_tile(tile, coords[0], coords[1])
+        # if the occupant of the tile is a knight, add to knight list
+        if not new_tile:
+            pass
+        else:
+            if board.is_occupied(new_tile):
+                if board.is_occupied_enemy(new_tile, color):
+                    possible_moves.append((tile, new_tile, Knight))
+            else:
+                possible_moves.append((tile, new_tile, Knight))
+    return possible_moves
+
+def king_analysis(board, tile):
+    color = board.board[tile].color
+    # possible coordinate spots from the king
+    spots = [(0, 1), (0, -1), (1, 0), (1, -1), (1, 1), (-1, 0), (-1, 1), (-1, -1)]
+    possible_moves = []
+    # iterate over them
+    for coords in spots:
+        new_tile = board.convert_tile(tile, coords[0], coords[1])
+        if not new_tile:
+            continue
+        # if the tile being checked is empty:
+        if not board.is_occupied(new_tile):
+            possible_moves.append((tile, new_tile, King))
+        elif board.is_occupied_enemy(new_tile, color):
+            possible_moves.append((tile, new_tile, King))
+    return possible_moves
 
 
 class Pawn(Piece):
@@ -96,23 +135,29 @@ class Pawn(Piece):
         # if that tile is not occupied
         if board.is_occupied(front_tile) is False:
             # append all of that to the new return list
-            ret_list.append((front_tile, Pawn))
+            ret_list.append((tile, front_tile, Pawn))
             if front_tile[1] == color.pawn_promotion_rank and not board.is_occupied(front_tile):
                 for promotion_option in promotion_list:
                     # add each promotion option to available moves
                     ret_list.append((tile, front_tile, promotion_option))
             # two tiles infront of the pawn in question
             two_infront = board.convert_tile(front_tile, 0, color.value(1))
+            # if it is on the second last rank, two_infront will return none, so we skip that edge case
+            if two_infront is None:
+                pass
             # if there is two empty squares (the closest coming from the above if statement) and pawn is on starting rank
             # it is allowed to double jump
-            if not board.is_occupied(two_infront) and tile[1] == color.pawn_starting_rank:
-                ret_list.append((two_infront, Pawn, (front_tile, EnpassantRemnant)))
+            elif not board.is_occupied(two_infront) and tile[1] == color.pawn_starting_rank:
+                ret_list.append((tile, two_infront, Pawn, (tile, front_tile, EnpassantRemnant)))
         # this is the tile in the left most side (white perspective) for either color
         front_left_and_right_tile = [board.convert_tile(tile, 1, color.value(1)),
                                      board.convert_tile(tile, -1, color.value(1))]
         # if that tile is occupied, we can take it, so we can add it to return list in a second:
         # for the two tiles infront of the pawn (front left and right)
         for front_tiles in front_left_and_right_tile:
+            if front_tiles is None:
+                # if the tile does not exist, skip past it
+                continue
             # if that tile is occupied by an enemy
             if board.pawn_is_occupied_enemy(front_tiles, color.color):
                 # if that tile being targeted is the promotion rank for the selected color, we can append each available
@@ -120,14 +165,25 @@ class Pawn(Piece):
                 if front_tiles[1] == color.pawn_promotion_rank:
                     for promotion_option in promotion_list:
                         # add each promotion option to available moves
-                        ret_list.append((front_tiles, promotion_option))
+                        ret_list.append((tile, front_tiles, promotion_option))
                         # the extra param passed through is the tile where the current pawn is, and it will be replaced by
                         # Empty
                 else:
                     # so if the tile is occupied by enemy, we can do that move, with the check for promotion rank failing
                     # we just append
-                    ret_list.append((front_tiles, Pawn))
+                    ret_list.append((tile, front_tiles, Pawn))
         return ret_list
+
+    @staticmethod
+    # this method is required for all classes to follow polymorphism, and to show that where a pawn can move != tiles it
+    # attacks. A pawn will always attack the two tiles to its front side
+    def tiles_attacking(board, tile):
+        # positive or negative 1, depending on color
+        color_val = board.board[tile].color.value(1)
+        # the two tiles infront of the pawn
+        front_1, front_2 = board.convert_tile(tile, color_val, +1), board.convert_tile(tile, color_val, -1)
+        # return all tiles that are valid
+        return [(tile, new_tile, Pawn) for new_tile in (front_1, front_2) if new_tile is not None]
 
 
 class EnpassantRemnant:  # does not inherit from 'Piece', because it is logically not a piece, and to distinguish from
@@ -158,6 +214,10 @@ class Rook(Piece):
     def analysis(board, tile: str):
         return horizontal_analysis(board, tile, Rook)
 
+    @staticmethod
+    def tiles_attacking(board, tile):
+        return horizontal_analysis(board, tile, Rook)
+
 
 class Bishop(Piece):
     value = 3
@@ -171,6 +231,10 @@ class Bishop(Piece):
     def analysis(board, tile: str):
         return diagonal_analysis(board, tile, Bishop)
 
+    @staticmethod
+    def tiles_attacking(board, tile):
+        return diagonal_analysis(board, tile, Bishop)
+
 
 class Knight(Piece):
     value = 3
@@ -182,25 +246,11 @@ class Knight(Piece):
 
     @staticmethod
     def analysis(board, tile: str):
-        color = board.board[tile].color
-        tile_list = [(1, 2), (-1, 2), (2, -1), (2, 1), (-2, 1), (-2, -1), (1, -2), (-1, -2)]
-        # used to store the list of the knights that are able to make the coordinate move. Usuaully, it is just one,
-        # but multiple are used if notation
-        piece_instances = []
-        # for each of the coordinates:
-        for coords in tile_list:
-            # create the new tile to query
-            new_tile = board.convert_tile(tile, coords[0], coords[1])
-            # if the occupant of the tile is a knight, add to knight list
-            if not new_tile:
-                pass
-            else:
-                if board.is_occupied(new_tile):
-                    if board.is_occupied_enemy(new_tile, color):
-                        piece_instances.append((new_tile, Knight))
-                else:
-                    piece_instances.append((new_tile, Knight))
-        return piece_instances
+        return knight_analysis(board, tile)
+
+    @staticmethod
+    def tiles_attacking(board, tile):
+        return knight_analysis(board, tile)
 
 
 class Queen(Piece):
@@ -215,6 +265,10 @@ class Queen(Piece):
     def analysis(board, tile: str):
         return horizontal_analysis(board, tile, Queen) + diagonal_analysis(board, tile, Queen)
 
+    @staticmethod
+    def tiles_attacking(board, tile):
+        return horizontal_analysis(board, tile, Queen) + diagonal_analysis(board, tile, Queen)
+
 
 class King(Piece):
     value = 100  # does 100 make sense? Worth more than everything on the board
@@ -226,18 +280,8 @@ class King(Piece):
 
     @staticmethod
     def analysis(board, tile: str):
-        color = board.board[tile].color
-        # possible coordinate spots from the king
-        spots = [(0, 1), (0, -1), (1, 0), (1, -1), (1, 1), (-1, 0), (-1, 1), (-1, -1)]
-        possible_moves = []
-        # iterate over them
-        for coords in spots:
-            new_tile = board.convert_tile(tile, coords[0], coords[1])
-            if not new_tile:
-                continue
-            # if the tile being checked is empty:
-            if not board.is_occupied(new_tile):
-                possible_moves.append(new_tile)
-            elif board.is_occupied_enemy(new_tile, color):
-                possible_moves.append(new_tile)
-        return possible_moves
+        return king_analysis(board, tile)
+
+    @staticmethod
+    def tiles_attacking(board, tile):
+        return king_analysis(board, tile)
