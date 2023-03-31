@@ -12,7 +12,7 @@ def generate_map():
     return piece_map
 
 
-def hashmap_to_png(board: dict):
+def hashmap_to_png(board: dict, extra=''):
     piece_key = generate_map()
     png_board = Image.open("./resources/chessboard.png")
     for key, value in board.items():
@@ -21,9 +21,8 @@ def hashmap_to_png(board: dict):
             if value.name == Empty:
                 pass
             y_value, x_value = tile_to_pixels(key.tile)
-            print(value.color)
             png_board.paste(piece_key[value.name], (y_value, x_value), piece_key[value.name])
-    png_board.save("regular_board.png")
+    png_board.save(f"regular_board_{extra}.png")
 
 
 def tile_to_pixels(tile: str) -> (int, int):
