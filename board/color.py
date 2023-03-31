@@ -2,7 +2,7 @@
 # black = -1. Represents where the pawns can move
 class Black:
     color = "black"
-    opposite_color = "white"
+    opposite_color = None
     pawn_starting_rank = "7"
     pawn_promotion_rank = "1"
 
@@ -17,7 +17,7 @@ class Black:
 
 class White:
     color = "white"
-    opposite_color = "black"
+    opposite_color = None
     pawn_starting_rank = "2"
     pawn_promotion_rank = "8"
 
@@ -29,3 +29,8 @@ class White:
     @staticmethod
     def pawn_coming_from():
         return -1
+
+
+# the classes must have this attribute, we add it here, so we do not have any undefined values inside 'Black'
+Black.opposite_color = White
+White.opposite_color = Black
