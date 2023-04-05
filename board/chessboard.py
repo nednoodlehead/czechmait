@@ -19,6 +19,7 @@ class ChessBoard:
     def __init__(self, board=default_board):
         self.board = board
 
+    # don't even think this is needed. can patch out later :)
     def __deepcopy__(self, memo):
         new_board = {tile: copy.deepcopy(piece, memo) for tile, piece in self.board.items()}
         return ChessBoard(new_board)
@@ -31,8 +32,8 @@ class ChessBoard:
             return False
 
     # export the current board to a png
-    def export_png(self):
-        export.hashmap_to_png(self.board)
+    def export_png(self, extra):
+        export.hashmap_to_png(self.board, extra)
 
     @staticmethod
     def handle_enpassant_remnant(board):
@@ -152,22 +153,23 @@ class ChessBoard:
         # if there is an x in the notation
         if taking:  # cxb5
             new_tile = notation[2:]
-            # if it is white, mark the tile above and on the first-letter file
-            start_tile = notation[0] + str(int(notation[-1]) - 1)
-            # if the tile that is being taken has no piece, an espassant occured
+            # this gets the direction that the color comes from. usually .value shows where it can go, but we reverse it
+            # (used to be turn.value(1))
+            color_value = turn.opposite_color.value(1)
+            # derive the old tile from the notation. dxe6 must have come from d5. coming from f5 would be fxe6
+            old_tile = notation[0] + str(int(notation[-1]) + color_value)
             if not self.is_occupied(new_tile):
-                # if en passant is occuring, we return the tile being caputured, but also the update for the tile
-                # that the piece dies on, which for white is -1 on numbers, -0 on letters
-                # it will be parsed later that this extra arguement will set that tile to empty
-                # turn.pawn_coming_from() tells us which direction (-1 for white, 1+ for black) the pawn is coming from
-                # this is needed to make the extra args define Empty to the correct tile
-                return (start_tile, new_tile, return_type), (self.convert_tile(new_tile, 0, turn.pawn_coming_from()), Empty)
-                # represents the only tile on the board that a pawn could take a white piece on this square
-            return start_tile, new_tile, return_type
+                # also pass in the data to set the enpassant pawn to Empty, because we took the remnant
+                return (old_tile, new_tile, return_type), self.convert_tile(new_tile, 0, turn.pawn_coming_from()), Empty
+            return old_tile, new_tile, return_type
+            # if the tile that is being taken has no piece, an espassant occured
         # there is no taking notation, it is a pawn move. e.g. b3
         else:
+            # usually this is called before, in notation_translation, but the taking part is important
+            # we remove it now, so if a pawn puts something in check, we do not add a <tile>+ key to our dictionary
+            notation = self.fix_notation(notation)
             # if the position below the notation is empty, the pawn did a double jump, so starting pos -> 4th
-            if isinstance(self.get_tile(f"{notation[0]}{str(int(notation[1]) + turn.value(1))}"), Empty):
+            if isinstance(self.board[self.get_tile(f"{notation[0]}{str(int(notation[1]) + turn.pawn_coming_from())}")], Empty):
                 # pawn did do a double jump:
                 return notation[0] + str(int(notation[1]) - turn.value(2)), notation, return_type
             else:
@@ -314,15 +316,17 @@ class ChessBoard:
         for coords in spots:
             # make the new tile
             new_tile = self.convert_tile(notation[-2:], coords[0], coords[1])
+            if not new_tile:
+                continue
             # if the tile contains a King type, return it. Impossible for a King to be there
             # that is an opposite color. Because then king could take king
             if isinstance(self.board[new_tile], King):
-                return notation[-2:], new_tile, King
+                return new_tile, notation[-2:], King
 
     def queen_search(self, notation, turn):
         bishop_results = self.bishop_search(notation, turn, Queen)
         rook_results = self.rook_search(notation, turn, Queen)
-        if bishop_results is None:
+        if not bishop_results[0]:
             return rook_results
         else:
             return bishop_results
@@ -343,17 +347,17 @@ class ChessBoard:
         if len(notation) == 3:
             if turn == Black:
                 # black short castle:
-                return "e8", "g8", King, ("h8", "f8", Rook)
+                return "e8", "g8", King, "h8", "f8", Rook
             else:
                 # white short castle:
-                return "e1", "g1", King, ("h1", "f1", Rook)
+                return "e1", "g1", King, "h1", "f1", Rook
         else:
             if turn == Black:
                 # black long castle
-                return "e8", "c8", King, ("a8", "d8", Rook)
+                return "e8", "c8", King, "a8", "d8", Rook
             else:
                 # white long castle
-                return "e1", "c1", King, ("ai", "d1", Rook)
+                return "e1", "c1", King, "a1", "d1", Rook
 
     def notation_translation(self, notation, turn):
         """
@@ -404,15 +408,17 @@ class ChessBoard:
         """
         # calls the enpassant checker, will handle the enpassant remnants
         board.board = self.handle_enpassant_remnant(board.board)
-        if extra is not []:
+        # extra defaults to being ([],) when empty, we check if the len is not 1:
+        if len(extra[0]) != 0:
+            # extra looks like: (["a1", "d1", Rook],)
             # if a castle occurs:
-            if len(extra) == 3:
+            if len(extra[0]) == 3:
                 # move the king to the new location
                 board.board[tile_new] = board.board[tile_old]
                 # move the rook to the new location
-                board.board[extra[1]] = board.board[extra[0]]
+                board.board[extra[0][1]] = board.board[extra[0][0]]
                 # set the rook's old position to empty()
-                board.board[extra[0]] = Empty()
+                board.board[extra[0][0]] = Empty()
                 # set the king's position to empty()
                 board.board[tile_old] = Empty()
             # in case of en passant
@@ -445,7 +451,7 @@ class ChessBoard:
             # and, we will create a new instance of that type on the new
             if not isinstance(board.board[tile_old], type_piece):
                 # we will make a new instance of that type, passing in the color, and the starting tile
-                new_piece = type_piece(board.board[tile_old].color, tile_new)
+                new_piece = type_piece(board.board[tile_old].color)
             else:
                 new_piece = board.board[tile_old]
             # setting the old piece's tile as empty

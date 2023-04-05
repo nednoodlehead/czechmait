@@ -2,9 +2,8 @@ from board.color import Black, White
 
 
 class Piece:
-    def __init__(self, color, starting_tile):
+    def __init__(self, color):
         self.color = color
-        self.starting_tile = starting_tile
 
     # def __repr__(self):
     #     return f"starting: {self.starting_tile}"
@@ -110,8 +109,8 @@ class Pawn(Piece):
     value = 1
     # we pass in the color of the piece and what tile it begins on
 
-    def __init__(self, color, starting_tile):
-        super().__init__(color, starting_tile)
+    def __init__(self, color):
+        super().__init__(color)
         self.color = color
         # this turns into: white_pawn or black_pawn
         self.name = f"{color.color}_pawn"
@@ -205,8 +204,8 @@ class EnpassantRemnant:  # does not inherit from 'Piece', because it is logicall
 class Rook(Piece):
     value = 5
 
-    def __init__(self, color, starting_tile):
-        super().__init__(color, starting_tile)
+    def __init__(self, color):
+        super().__init__(color)
         self.color = color
         self.name = f"{color.color}_rook"
 
@@ -222,8 +221,8 @@ class Rook(Piece):
 class Bishop(Piece):
     value = 3
 
-    def __init__(self, color, starting_tile):
-        super().__init__(color, starting_tile)
+    def __init__(self, color):
+        super().__init__(color)
         self.color = color
         self.name = f"{color.color}_bishop"
 
@@ -239,8 +238,8 @@ class Bishop(Piece):
 class Knight(Piece):
     value = 3
 
-    def __init__(self, color, starting_tile):
-        super().__init__(color, starting_tile)
+    def __init__(self, color):
+        super().__init__(color)
         self.color = color
         self.name = f"{color.color}_knight"
 
@@ -256,8 +255,8 @@ class Knight(Piece):
 class Queen(Piece):
     value = 9
 
-    def __init__(self, color, starting_tile):
-        super().__init__(color, starting_tile)
+    def __init__(self, color):
+        super().__init__(color)
         self.color = color
         self.name = f"{color.color}_queen"
 
@@ -273,8 +272,8 @@ class Queen(Piece):
 class King(Piece):
     value = 100  # does 100 make sense? Worth more than everything on the board
 
-    def __init__(self, color, starting_tile):
-        super().__init__(color, starting_tile)
+    def __init__(self, color):
+        super().__init__(color)
         self.color = color
         self.name = f"{color.color}_king"
 
