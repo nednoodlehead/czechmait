@@ -160,7 +160,7 @@ class ChessBoard:
             old_tile = notation[0] + str(int(notation[-1]) + color_value)
             if not self.is_occupied(new_tile):
                 # also pass in the data to set the enpassant pawn to Empty, because we took the remnant
-                return (old_tile, new_tile, return_type), self.convert_tile(new_tile, 0, turn.pawn_coming_from()), Empty
+                return old_tile, new_tile, return_type, self.convert_tile(new_tile, 0, turn.pawn_coming_from()), Empty
             return old_tile, new_tile, return_type
             # if the tile that is being taken has no piece, an espassant occured
         # there is no taking notation, it is a pawn move. e.g. b3
@@ -408,6 +408,7 @@ class ChessBoard:
         """
         # calls the enpassant checker, will handle the enpassant remnants
         board.board = self.handle_enpassant_remnant(board.board)
+        print(f'extra: {extra} | {tile_old} {tile_new}, {type_piece}')
         # extra defaults to being ([],) when empty, we check if the len is not 1:
         if len(extra[0]) != 0:
             # extra looks like: (["a1", "d1", Rook],)
@@ -423,6 +424,7 @@ class ChessBoard:
                 board.board[tile_old] = Empty()
             # in case of en passant
             else:
+                print('google en passant')
                 # piece that is being removed, if empty, nothing is being removed
                 # the piece that is moving:
                 moving_piece = board.board[tile_old]
@@ -430,12 +432,8 @@ class ChessBoard:
                 board.board[tile_old] = Empty()
                 # making the new tile = the piece that is moving
                 board.board[tile_new] = moving_piece
-                # if the tile is not occupied by 'Empty', add that piece that is being taken to piece_list
-                if not isinstance(board.board[tile_new], Empty):
-                    if board.board[tile_new].color == Black:
-                        self.missing_pieces_black.append(board.board[tile_new])
-                    else:
-                        self.missing_pieces_white.append(board.board[tile_new])
+                # set the pawn that is being enpassanted to empty
+                board.board[extra[0][0]] = Empty()
         else:
             if isinstance(type_piece, Pawn) and self.pawn_diff(tile_old, tile_new):
                 # copy the new square with the old square (occupant)
