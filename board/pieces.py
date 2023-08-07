@@ -115,6 +115,9 @@ class Pawn(Piece):
         # this turns into: white_pawn or black_pawn
         self.name = f"{color.color}_pawn"
 
+    def __repr__(self):
+        return f'{self.color.color}_Pawn'
+
     @staticmethod
     def analysis(board, tile: str):
         """
@@ -131,14 +134,17 @@ class Pawn(Piece):
         ret_list = []
         # get the tile in front of it, using the color's associated value
         front_tile = board.convert_tile(tile, 0, color.value(1))
+        if front_tile is None:
+            breakpoint()
+
         # if that tile is not occupied
         if board.is_occupied(front_tile) is False:
-            # append all of that to the new return list
-            ret_list.append((tile, front_tile, Pawn))
-            if front_tile[1] == color.pawn_promotion_rank and not board.is_occupied(front_tile):
+            if front_tile[1] == color.pawn_promotion_rank:
                 for promotion_option in promotion_list:
                     # add each promotion option to available moves
                     ret_list.append((tile, front_tile, promotion_option))
+            else:
+                ret_list.append((tile, front_tile, Pawn))
             # two tiles infront of the pawn in question
             two_infront = board.convert_tile(front_tile, 0, color.value(1))
             # if it is on the second last rank, two_infront will return none, so we skip that edge case
@@ -147,7 +153,7 @@ class Pawn(Piece):
             # if there is two empty squares (the closest coming from the above if statement) and pawn is on starting rank
             # it is allowed to double jump
             elif not board.is_occupied(two_infront) and tile[1] == color.pawn_starting_rank:
-                ret_list.append((tile, two_infront, Pawn, (tile, front_tile, EnpassantRemnant)))
+                ret_list.append((tile, two_infront, Pawn, (front_tile, EnpassantRemnant)))
         # this is the tile in the left most side (white perspective) for either color
         front_left_and_right_tile = [board.convert_tile(tile, 1, color.value(1)),
                                      board.convert_tile(tile, -1, color.value(1))]
@@ -158,7 +164,7 @@ class Pawn(Piece):
                 # if the tile does not exist, skip past it
                 continue
             # if that tile is occupied by an enemy
-            if board.pawn_is_occupied_enemy(front_tiles, color.color):
+            if board.pawn_is_occupied_enemy(front_tiles, color):
                 # if that tile being targeted is the promotion rank for the selected color, we can append each available
                 # promotion option to our list
                 if front_tiles[1] == color.pawn_promotion_rank:
@@ -200,6 +206,15 @@ class EnpassantRemnant:  # does not inherit from 'Piece', because it is logicall
         self.color = color
         self.name = f"{color.color}_en"
 
+    @staticmethod
+    def analysis(_board, _tile):
+        # this is just to appease board_calculations in get_specific_value
+        return []
+
+    @staticmethod
+    # i think this is probably better than making an if/else clause inside the things that call this
+    def tiles_attacking(_board, _tile):
+        return []
 
 class Rook(Piece):
     value = 5
@@ -208,6 +223,9 @@ class Rook(Piece):
         super().__init__(color)
         self.color = color
         self.name = f"{color.color}_rook"
+
+    def __repr__(self):
+        return f'{self.color.color}_Rook'
 
     @staticmethod
     def analysis(board, tile: str):
@@ -226,6 +244,9 @@ class Bishop(Piece):
         self.color = color
         self.name = f"{color.color}_bishop"
 
+    def __repr__(self):
+        return f'{self.color.color}_Bishop'
+
     @staticmethod
     def analysis(board, tile: str):
         return diagonal_analysis(board, tile, Bishop)
@@ -242,6 +263,9 @@ class Knight(Piece):
         super().__init__(color)
         self.color = color
         self.name = f"{color.color}_knight"
+
+    def __repr__(self):
+        return f'{self.color.color}_Knight'
 
     @staticmethod
     def analysis(board, tile: str):
@@ -260,6 +284,9 @@ class Queen(Piece):
         self.color = color
         self.name = f"{color.color}_queen"
 
+    def __repr__(self):
+        return f'{self.color.color}_Queen'
+
     @staticmethod
     def analysis(board, tile: str):
         return horizontal_analysis(board, tile, Queen) + diagonal_analysis(board, tile, Queen)
@@ -276,6 +303,9 @@ class King(Piece):
         super().__init__(color)
         self.color = color
         self.name = f"{color.color}_king"
+
+    def __repr__(self):
+        return f'{self.color.color}_king'
 
     @staticmethod
     def analysis(board, tile: str):

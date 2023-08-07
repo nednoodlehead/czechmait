@@ -13,16 +13,30 @@ class ChessBoard:
     score = 0
     missing_pieces_black = []
     missing_pieces_white = []
+    delete_later = 0
     # tiles that have an enpassant remnant on them
     enpassant_tile = []
+    last_move = []  # when a move is made, store information about how we can 'rebuild' the last board
+    # order: (undone_tile, undone_occupant, original_tile, original_occupant, color, *extra), undone is the tile being
+    # reverted. So if I am reverting an opening move of d4, undone_tile = d4, original_tile = d2, undone_occupant = empt
+    # original_occupant = board.piece.Pawn
 
     def __init__(self, board=default_board):
         self.board = board
 
     # don't even think this is needed. can patch out later :)
-    def __deepcopy__(self, memo):
-        new_board = {tile: copy.deepcopy(piece, memo) for tile, piece in self.board.items()}
+    def __copy__(self):
+        new_board = self.board
         return ChessBoard(new_board)
+
+    def differ(self) -> str:
+        # purpose of this is to be able to differenciate two boards in debugging
+        differ_str = ""
+        for tile in self.board:
+            if tile.tile[1] not in ["1", "2", "7", "8"]:
+                differ_str += differ_str
+        return differ_str
+
 
     def is_occupied(self, tile):
         # if the passed in tile is any type that inherits 'Piece', this does not cover en passant remnants
@@ -53,6 +67,49 @@ class ChessBoard:
                 if piece.decay == 0:
                     board[tile] = Empty()
         return board
+
+    def undo_move(self):
+        # attemps to undo the last move
+        # i dont think this will revive the enpassant remnants. maybe look into later
+        if len(self.last_move) == 0:
+            raise ValueError("Calling undo on nothing? Are you stupid?")
+        org_tile, org_piece, undone_tile, undone_piece, *extra = self.last_move[-1]
+        print(f'undoing: {org_tile, org_piece, undone_tile, undone_piece, *extra}')
+        self.board[org_tile] = org_piece
+        self.board[undone_tile] = undone_piece
+        # remove the enpassant if there was one
+        # CANBE optimised
+        if org_tile[0] == undone_tile[0]:  # the tiles are on the same letter axis
+            if int(org_tile[1]) - int(undone_tile[1]) == 2:
+                print("white enpassant located!")
+                # this is the tile where the enpass rem should be
+                enpass_tile = f"{org_tile[0]}3"
+                # set it to empty !!
+                self.board[enpass_tile] = Empty()
+            if int(org_tile[1]) - int(undone_tile[1]) == -2:
+                print("black enpassant located!!")
+                enpass_tile = f"{org_tile[0]}6"
+                self.board[enpass_tile] = Empty()
+            else:
+                pass
+
+        if extra != [([],)]:  # should probably clean this at somepoint...
+            if len(extra[0]) < 2:  # castling
+                print(f'what it look like: {extra}')
+                # for castling: extra looks like: [('a1', white_Rook, 'd1', <board.empty.Empty object at 0xwhatever>)]
+                self.board[extra[0][0]] = extra[0][1]
+                self.board[extra[0][2]] = extra[0][3]
+                print(f'undoing catling: {extra}')
+            else:  # undoing enpassant
+                print(f'undoing enpassant: {extra}')
+                self.board[org_tile] = org_piece
+                self.board[extra[0][0]] = extra[0][1]
+        self.last_move.pop()
+
+    def move_from_notation(self, notation, color: type(White) | Black):
+        old_tile, new_tile, type_piece, *extra = self.notation_translation(notation, color)
+        print(f'moving from notation: {old_tile, new_tile, type_piece, extra}')
+        self.update_board(self, old_tile, new_tile, type_piece, extra)
 
     # used to see nearby tiles through calculations
     @staticmethod
@@ -326,7 +383,7 @@ class ChessBoard:
     def queen_search(self, notation, turn):
         bishop_results = self.bishop_search(notation, turn, Queen)
         rook_results = self.rook_search(notation, turn, Queen)
-        if not bishop_results[0]:
+        if not bishop_results:  # was bishop_results[0]
             return rook_results
         else:
             return bishop_results
@@ -406,9 +463,10 @@ class ChessBoard:
        as tuple
         :returns modified board type
         """
+        print(f'{tile_old} was occupied by {type_piece}, which is now on {tile_new} +{extra} last_move: {board.last_move}')
+        old_tile_occupant = board.board[tile_new]
         # calls the enpassant checker, will handle the enpassant remnants
         board.board = self.handle_enpassant_remnant(board.board)
-        print(f'extra: {extra} | {tile_old} {tile_new}, {type_piece}')
         # extra defaults to being ([],) when empty, we check if the len is not 1:
         if len(extra[0]) != 0:
             # extra looks like: (["a1", "d1", Rook],)
@@ -422,9 +480,24 @@ class ChessBoard:
                 board.board[extra[0][0]] = Empty()
                 # set the king's position to empty()
                 board.board[tile_old] = Empty()
+                # *extra will define the rook's movement, and the regular part will define the king's movement
+                print(f'APPENDING5: {tile_new, Empty(), tile_old, board.board[tile_new], (extra[0][0], board.board[extra[0][1]], extra[0][1], Empty())}')
+                self.last_move.append((tile_new, Empty(), tile_old, board.board[tile_new], (extra[0][0],
+                                       board.board[extra[0][1]], extra[0][1], Empty())))
+            # doing the enpassantremnant
+            elif extra[0][0][1] == EnpassantRemnant:  # extra: ([('g3', piece.enpass)],)
+                try:
+                    board.board[tile_new] = board.board[tile_old]
+                    board.board[extra[0][0][0]] = extra[0][0][1](board.board[tile_old].color)
+                    print(f'APPENDING4: {tile_old, old_tile_occupant, extra[0][0][1], Empty(), ([],)}')
+                    print(f'ALL: {(tile_new, board.board[tile_new], tile_old, old_tile_occupant, (extra[0][0][0], extra[0][0][1]))}')
+                    # self.last_move.append((tile_old, old_tile_occupant, extra[0][0][1], Empty(), ([])))
+                    self.last_move.append((tile_new, board.board[tile_new], tile_old, old_tile_occupant, (extra[0][0][0], extra[0][0][1])))
+                except AttributeError:
+                    breakpoint()
             # in case of en passant
             else:
-                print('google en passant')
+                print(f'extra heres: {extra} {extra[0][0][2]}')
                 # piece that is being removed, if empty, nothing is being removed
                 # the piece that is moving:
                 moving_piece = board.board[tile_old]
@@ -433,30 +506,49 @@ class ChessBoard:
                 # making the new tile = the piece that is moving
                 board.board[tile_new] = moving_piece
                 # set the pawn that is being enpassanted to empty
+                opposite_pawn = board.board[extra[0][0]]
                 board.board[extra[0][0]] = Empty()
+                # extra will define the other color's pawn being removed
+                print(f"APPENDING3: {tile_new, Empty(), extra[0][0], board.board[tile_new], tile_old, opposite_pawn}")
+                self.last_move.append((tile_new, Empty(), extra[0][0], board.board[tile_new], tile_old, opposite_pawn))
         else:
-            if isinstance(type_piece, Pawn) and self.pawn_diff(tile_old, tile_new):
+            if type_piece == Pawn and self.pawn_diff(tile_old, tile_new):
                 # copy the new square with the old square (occupant)
                 board.board[tile_new] = board.board[tile_old]
                 board.board[tile_old] = Empty()
                 if board.board[tile_new].color == Black:
-                    color_and_value = -1, "black"
+                    color_and_value = -1, Black
                 else:
-                    color_and_value = +1, "white"
+                    color_and_value = +1, White
                 board.board[self.convert_tile(tile_old, 0, color_and_value[0])] = EnpassantRemnant(color_and_value[1])
+                print('adding thru here')
+                # maybe add something to remove remnant as *extra ?
+                print(f"APPENDING2: {tile_new, Empty(), tile_old, board.board[tile_new], ([],)}")
+                self.last_move.append((tile_new, Empty(), tile_old, board.board[tile_new], ([],)))
 
             # if the type of the square before is not the same as what it will be after, a pawn promotion has occured
             # and, we will create a new instance of that type on the new
-            if not isinstance(board.board[tile_old], type_piece):
+            elif not isinstance(board.board[tile_old], type_piece):
                 # we will make a new instance of that type, passing in the color, and the starting tile
-                new_piece = type_piece(board.board[tile_old].color)
+                try:
+                    new_piece = type_piece(board.board[tile_old].color)
+                except AttributeError:
+                    breakpoint()
+                board.board[tile_old] = Empty()
+                board.board[tile_new] = new_piece
+                print(f"APPENDING1: {tile_old, new_piece, tile_new,  old_tile_occupant, extra}")
+                self.last_move.append((tile_old, new_piece, tile_new,  old_tile_occupant, extra))
             else:
                 new_piece = board.board[tile_old]
-            # setting the old piece's tile as empty
-            board.board[tile_old] = Empty()
-            # making the new tile = the piece that is moving
-            board.board[tile_new] = new_piece
-            # do we need a way to keep track of pieces off the board?
+                print(f'adding thr3 here {type_piece == Pawn, self.pawn_diff(tile_old, tile_new)}')
+                # setting the old piece's tile as empty
+                board.board[tile_old] = Empty()
+                # making the new tile = the piece that is moving
+                board.board[tile_new] = new_piece
+                # do we need a way to keep track of pieces off the board?
+                print(f'APPENDING0: {(tile_new,  old_tile_occupant, tile_old, new_piece, extra)}')
+                # was tile_old, new_piece, tile_new,  old_tile_occupant,
+                self.last_move.append((tile_new,  old_tile_occupant, tile_old, new_piece, extra))
         return board
 
     @staticmethod

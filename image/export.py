@@ -54,7 +54,6 @@ def generate_value_png(board: dict):
     font = ImageFont.truetype("./font/ArialNarrow7-9YJ9n.ttf", 45)
     draw = ImageDraw.Draw(img)
     for key, value in board.items():
-        print(f' value: {value}')
         y_value, x_value = tile_to_pixels(key.tile)
         # add 50 so the text is more centered on the square : )
         draw.text((y_value + 25, x_value + 25), str(value), (0, 0, 0), font=font)
