@@ -1,5 +1,5 @@
 # czechmait
-A chessbot designed to smack low elo players
+A chessbot written in python !!
 
 Written in python to be fairly customizable with different options to play risky, safe, or somewhere inbetween.
 
