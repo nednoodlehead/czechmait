@@ -492,7 +492,7 @@ class ChessBoard:
                     print(f'APPENDING4: {tile_old, old_tile_occupant, extra[0][0][1], Empty(), ([],)}')
                     print(f'ALL: {(tile_new, board.board[tile_new], tile_old, old_tile_occupant, (extra[0][0][0], extra[0][0][1]))}')
                     # self.last_move.append((tile_old, old_tile_occupant, extra[0][0][1], Empty(), ([])))
-                    self.last_move.append((tile_new, board.board[tile_new], tile_old, old_tile_occupant, (extra[0][0][0], extra[0][0][1])))
+                    self.last_move.append((tile_new, board.board[tile_new], tile_old, old_tile_occupant, (extra[0][0][0], extra[0][0][1](board.board[tile_new].color))))
                 except AttributeError:
                     breakpoint()
             # in case of en passant

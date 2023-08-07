@@ -206,6 +206,10 @@ class EnpassantRemnant:  # does not inherit from 'Piece', because it is logicall
         self.color = color
         self.name = f"{color.color}_en"
 
+    def __repr__(self):
+        return f'{self.color}_enpassant'
+
+
     @staticmethod
     def analysis(_board, _tile):
         # this is just to appease board_calculations in get_specific_value
