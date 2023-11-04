@@ -4,7 +4,7 @@ from board.pieces import Pawn, Bishop, Knight, Rook, Queen, King
 from board.tile import Tile
 from board.chessboard import ChessBoard
 from board.color import Black, White
-
+from tests.boards import proper_testing_board, test_castling_board, test_enpassant_board
 
 @pytest.fixture()
 def board():
@@ -93,8 +93,14 @@ def enpassant_board():
     return ChessBoard(enpassant)
 
 
-def test_notation_translation(board: ChessBoard, castle_board: ChessBoard, enpassant_board: ChessBoard):
+def test_notation_translation():
     #                                notation, color       starting tile, ending tile, piece that will be on ending tile
+    import tests   
+    board = ChessBoard(proper_testing_board)
+    castle_board = ChessBoard(test_castling_board)
+    enpassant_board = ChessBoard(test_enpassant_board)
+    
+    
     assert board.notation_translation("Raxb5", Black) == ("a5", "b5", Rook)
     assert board.notation_translation("Bf5", Black) == ("d7", "f5", Bishop)
     assert board.notation_translation("exd8=Q", White) == ("e7", "d8", Queen)
