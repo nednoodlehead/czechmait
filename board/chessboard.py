@@ -7,7 +7,8 @@ from board.empty import Empty
 from board.pieces import Piece, EnpassantRemnant, Pawn, Bishop, Knight, Rook, Queen, King
 from tests.boards import enpass, default_board, enpass_real, testing_board
 from board.color import Black, White
-from board.data_structure import Move, Extra, LastMove
+from board.data_structure import Move, Extra, LastMove, Enpassant, Castle, DoublePawnMove
+from typing import List
 
 
 class ChessBoard:
@@ -17,7 +18,7 @@ class ChessBoard:
     delete_later = 0
     # tiles that have an enpassant remnant on them
     enpassant_tile = []
-    last_move = [] # contains `board/data_structure/LastMove` types (undoing will be handled by this class however)
+    last_move: List[LastMove] = [] # contains `board/data_structure/LastMove` types (undoing will be handled by this class however)
     
     def __init__(self, board=default_board):
         self.board = board
@@ -71,37 +72,17 @@ class ChessBoard:
         # i dont think this will revive the enpassant remnants. maybe look into later
         if len(self.last_move) == 0:
             raise ValueError("Calling undo on nothing? Are you stupid?")
-        org_tile, org_piece, undone_tile, undone_piece, *extra = self.last_move[-1]
-        print(f'undoing: {org_tile, org_piece, undone_tile, undone_piece, *extra}')
-        self.board[org_tile] = org_piece
-        self.board[undone_tile] = undone_piece
+        to_undo = self.last_move[-1]
+        self.board[to_undo.undone_tile] = to_undo.undone_occupant
+        self.board[to_undo.original_tile] = to_undo.original_occupant
         # remove the enpassant if there was one
-        # CANBE optimised
-        if org_tile[0] == undone_tile[0]:  # the tiles are on the same letter axis
-            if int(org_tile[1]) - int(undone_tile[1]) == 2:
-                print("white enpassant located!")
-                # this is the tile where the enpass rem should be
-                enpass_tile = f"{org_tile[0]}3"
-                # set it to empty !!
-                self.board[enpass_tile] = Empty()
-            if int(org_tile[1]) - int(undone_tile[1]) == -2:
-                print("black enpassant located!!")
-                enpass_tile = f"{org_tile[0]}6"
-                self.board[enpass_tile] = Empty()
-            else:
+        if not to_undo.extra: # castling, enpass or double jump has occured
+            if isinstance(to_undo.extra, Enpassant):
                 pass
-
-        if extra != [([],)]:  # should probably clean this at somepoint...
-            if len(extra[0]) < 2:  # castling
-                print(f'what it look like: {extra}')
-                # for castling: extra looks like: [('a1', white_Rook, 'd1', <board.empty.Empty object at 0xwhatever>)]
-                self.board[extra[0][0]] = extra[0][1]
-                self.board[extra[0][2]] = extra[0][3]
-                print(f'undoing catling: {extra}')
-            else:  # undoing enpassant
-                print(f'undoing enpassant: {extra}')
-                self.board[org_tile] = org_piece
-                self.board[extra[0][0]] = extra[0][1]
+            elif isinstance(to_undo.extra, Castle):
+                pass
+            else: # pawn double jump
+                pass
         self.last_move.pop()
 
     def move_from_notation(self, notation, color: type(White) | Black):
