@@ -1,6 +1,8 @@
 # czechmait
 A chessbot written in python !!
 
+Is still a work in progress, will update this when progress is made
+
 Written in python to be fairly customizable with different options to play risky, safe, or somewhere inbetween.
 
 Has nothing to do with the firearm with a similar name
