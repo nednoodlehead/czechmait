@@ -7,6 +7,7 @@ from board.empty import Empty
 from board.pieces import Piece, EnpassantRemnant, Pawn, Bishop, Knight, Rook, Queen, King
 from tests.boards import enpass, default_board, enpass_real, testing_board
 from board.color import Black, White
+from board.data_structure import Move, Extra, LastMove
 
 
 class ChessBoard:
@@ -16,11 +17,8 @@ class ChessBoard:
     delete_later = 0
     # tiles that have an enpassant remnant on them
     enpassant_tile = []
-    last_move = []  # when a move is made, store information about how we can 'rebuild' the last board
-    # order: (undone_tile, undone_occupant, original_tile, original_occupant, color, *extra), undone is the tile being
-    # reverted. So if I am reverting an opening move of d4, undone_tile = d4, original_tile = d2, undone_occupant = empt
-    # original_occupant = board.piece.Pawn
-
+    last_move = [] # contains `board/data_structure/LastMove` types (undoing will be handled by this class however)
+    
     def __init__(self, board=default_board):
         self.board = board
 
