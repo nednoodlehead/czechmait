@@ -12,7 +12,7 @@ def evaluate_positional_board(board: ChessBoard, turn: type(White) | Black) -> f
     # this will try to show that inbalance
     black_val, white_val = 0, 0
     for tile, piece in board.board.items():
-        if isinstance(piece, Empty):
+        if isinstance(piece, Empty) or isinstance(piece, EnpassantRemnant):
             # if the tile is empty, no need to evaluate it
             continue
         if piece.color == Black:
