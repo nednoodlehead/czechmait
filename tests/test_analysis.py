@@ -5,7 +5,7 @@ from board.tile import Tile
 from board.chessboard import ChessBoard
 from board.color import Black, White
 from tests.boards import proper_testing_board, test_castling_board, test_enpassant_board
-
+from board.data_structure import Move, LastMove
 @pytest.fixture()
 def board():
     testing_board = {
@@ -99,14 +99,14 @@ def test_notation_translation():
     board = ChessBoard(proper_testing_board)
     castle_board = ChessBoard(test_castling_board)
     enpassant_board = ChessBoard(test_enpassant_board)
-    
-    
-    assert board.notation_translation("Raxb5", Black) == ("a5", "b5", Rook)
-    assert board.notation_translation("Bf5", Black) == ("d7", "f5", Bishop)
-    assert board.notation_translation("exd8=Q", White) == ("e7", "d8", Queen)
-    assert board.notation_translation("e5", White) == ("e4", "e5", Pawn)
-    assert board.notation_translation("Qgxh8", White) == ("g8", "h8", Queen)
-    assert board.notation_translation("Nc6", Black) == ("b8", "c6", Knight)
-    assert castle_board.notation_translation("0-0-0", Black) == ("e8", "c8", King, "a8", "d8", Rook)
-    assert castle_board.notation_translation("O-O", White) == ("e1", "g1", King, "h1", "f1", Rook)
-    assert enpassant_board.notation_translation("exd6", White) == ("e5", "d6", Pawn, "d5", Empty)
+    # asserting that it will give out a correct instance
+    assert isinstance(result := board.notation_translation("Raxb5", Black), Move) and result.old_tile == Tile("a5") and result.new_tile == Tile("b5") and isinstance(result.piece, Rook) and result.piece.color == Black
+    assert isinstance(result := board.notation_translation("Bf5", Black), Move) and result.old_tile == Tile("d7") and result.new_tile == Tile("f5") and isinstance(result.piece, Bishop) and result.piece.color == Black
+    assert isinstance(result := board.notation_translation("exd8=Q", White), Move) and result.old_tile == Tile("e7") and result.new_tile == Tile("d8") and isinstance(result.piece, Queen) and result.piece.color == White
+    assert isinstance(result := board.notation_translation("e5", White), Move) and result.old_tile == Tile("e4") and result.new_tile == Tile("e5") and isinstance(result.piece, Pawn) and result.piece.color == White
+    assert isinstance(result := board.notation_translation("Qgxh8", White), Move) and result.old_tile == Tile("g8") and result.new_tile == Tile("h8") and isinstance(result.piece, Queen) and result.piece.color == White 
+    assert isinstance(result := board.notation_translation("Nc6", Black), Move) and result.old_tile == Tile("b8") and result.new_tile == Tile("c6") and isinstance(result.piece, Knight) and result.piece.color == Black
+    assert isinstance(result := board.notation_translation("0-0-0", Black), Move) and result.old_tile == Tile("e8") and result.new_tile == Tile("c8") and isinstance(result.piece, King) and result.piece.color == Black     
+    assert isinstance(result := board.notation_translation("O-O", White), Move) and result.old_tile == Tile("e1") and result.new_tile == Tile("g1") and isinstance(result.piece, King) and result.piece.color == White and result.extra.rook_starting == Tile("h1") and result.extra.rook_ending == Tile("f1")
+    assert isinstance(result := enpassant_board.notation_translation("exd6", White), Move) and result.old_tile == Tile("e5") and result.new_tile == Tile("d6") and result.extra.death_tile == Tile("d5") and result.extra.color == Black
+    # assert enpassant_board.notation_translation("exd6", White) == ("e5", "d6", Pawn, "d5", Empty)

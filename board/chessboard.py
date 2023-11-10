@@ -9,6 +9,7 @@ from tests.boards import enpass, default_board, enpass_real, testing_board
 from board.color import Black, White
 from board.data_structure import Move, Extra, LastMove, Enpassant, Castle, DoublePawnMove
 from typing import List
+from board.tile import Tile
 
 
 class ChessBoard:
@@ -76,7 +77,7 @@ class ChessBoard:
         self.board[to_undo.undone_tile] = to_undo.undone_occupant
         self.board[to_undo.original_tile] = to_undo.original_occupant
         # remove the enpassant if there was one
-        if not to_undo.extra: # castling, enpass or double jump has occured
+        if to_undo.extra: # castling, enpass or double jump has occured
             if isinstance(to_undo.extra, Enpassant):
                 # set the original tile to a pawn of the opposite of capturing pawn
                 self.board[to_undo.extra.start_tile] = Pawn(to_undo.extra.color.opposite_color)
@@ -88,13 +89,11 @@ class ChessBoard:
                 self.board[to_undo.rook_ending] = Empty()
             else: # pawn double jump
                 # set the spot where the enpassant remnant should be to empty!
-                self.board[to_undo.tile] = Empty()
+                self.board[to_undo.extra.tile] = Empty()
         self.last_move.pop()
 
     def move_from_notation(self, notation, color: type(White) | Black):
-        old_tile, new_tile, type_piece, *extra = self.notation_translation(notation, color)
-        print(f'moving from notation: {old_tile, new_tile, type_piece, extra}')
-        self.update_board(self, old_tile, new_tile, type_piece, extra)
+        self.update_board(self, self.notation_translation(notation, color))
 
     # used to see nearby tiles through calculations
     @staticmethod
@@ -202,8 +201,10 @@ class ChessBoard:
             old_tile = notation[0] + str(int(notation[-1]) + color_value)
             if not self.is_occupied(new_tile):
                 # also pass in the data to set the enpassant pawn to Empty, because we took the remnant
-                return old_tile, new_tile, return_type, self.convert_tile(new_tile, 0, turn.pawn_coming_from()), Empty
-            return old_tile, new_tile, return_type
+                # TODO im not sure about the inputs to enpassant()
+                return Move(Tile(old_tile), Tile(new_tile), return_type(turn), Enpassant(Tile(self.convert_tile(new_tile, 0, turn.pawn_coming_from())), turn.opposite_color))
+               
+            return Move(Tile(old_tile), Tile(new_tile), return_type(turn), None)
             # if the tile that is being taken has no piece, an espassant occured
         # there is no taking notation, it is a pawn move. e.g. b3
         else:
@@ -213,15 +214,15 @@ class ChessBoard:
             # if the position below the notation is empty, the pawn did a double jump, so starting pos -> 4th
             if isinstance(self.board[self.get_tile(f"{notation[0]}{str(int(notation[1]) + turn.pawn_coming_from())}")], Empty):
                 # pawn did do a double jump:
-                return notation[0] + str(int(notation[1]) - turn.value(2)), notation, return_type
+                return Move( Tile(notation[0] + str(int(notation[1]) - turn.value(2))), Tile(notation), return_type(turn), DoublePawnMove(Tile(self.convert_tile(notation, 0, turn.pawn_coming_from())), turn))
             else:
                 # pawn did not do a double jump
-                return notation[0] + str(int(notation[1]) - turn.value(1)), notation, return_type
+                return Move(Tile(notation[0] + str(int(notation[1]) - turn.value(1))), Tile(notation), return_type(turn), None)
 
     def rook_search(self, notation, turn, piece):
         # check for the edge case that the notation is 5 long, and it is like: Rd5b5. so d5 -> b5
         if len(notation) == 5:
-            return notation[1:3], notation[3:5], piece
+            return notation[1:3], notation[3:5], piece(turn)
         # this will be a list of all piece types that can move to that square
         piece_instances = []
         # a var to hold to notation. assumes post-self.fix_notation
@@ -237,11 +238,11 @@ class ChessBoard:
                 piece_instances.append(search)
 
         if len(piece_instances) == 1:
-            return piece_instances[0], base_tile, piece
+            return Move(Tile(piece_instances[0]), Tile(base_tile), piece(turn), None)
         else:
             for tile in piece_instances:
                 if notation[1] in tile:
-                    return tile, base_tile, piece
+                    return Move(Tile(tile), Tile(base_tile), piece(turn), None)
 
     def vert_hori_search(self, tile, piece, turn, amount_1, amount_2):
         # loop:
@@ -282,22 +283,24 @@ class ChessBoard:
                     if self.board[tile].color == turn:
                         nearby_knights.append(tile)
         if len(nearby_knights) == 0:
-            raise ValueError("Invalid notation given with current board")
+            self.export_png("real horse hours nf3")
+            raise ValueError(f"Invalid notation given with current board {notation}")
         if len(notation) == 3:  # case: Ne3
             # return the only available knight's square that can go there, and the notation telling which square
             # it is being moved to. There should also only be one item in nearby_knights
-            return nearby_knights[0], notation[-2:], Knight
+            
+            return Move(Tile(nearby_knights[0]), Tile(notation[-2:]), Knight(turn), None)
         # case where notation denotes that the second char is unique (letter or number). It
         elif len(notation) == 4:  # case Nde3 (b file knights goes to e3)
             # unique is the character that uniquely identifies the original square
             unique = notation[1]
             for item in nearby_knights:
                 if unique in item:
-                    return item, notation[-2:], Knight
+                    return Move(Tile(item), Tile(notation[-2:]), Knight(turn), None)
         elif len(notation) == 5:
-            return notation[1:3], notation[3:5], Knight  # (e.g. N3d4)
-
-    def bishop_search(self, notation, turn, piece):
+            return Move(Tile(notation[1:3]), Tile(notation[3:5]), Knight(turn), None)
+    # none is allowed as a return type because the queen search can call it
+    def bishop_search(self, notation, turn, piece) -> None | Move:
         """
                 :param notation: "Be3". Must be parsed by fix_notation first
                 :param piece: either Queen or Bishop
@@ -336,20 +339,21 @@ class ChessBoard:
             # case where the Queen type is querying, and it does not find anything
             if len(bishop_tiles) == 0:
                 # return empty list as it will not matter, because later it will add lists together
-                return [], notation[-2:], piece
+                return None
             else:
                 # if the list isn't empty, return the tile the piece is on, notation, and instance of piece
-                return bishop_tiles[0], notation[-2:], piece
+                return Move(Tile(bishop_tiles[0]), Tile(notation[-2:]), piece(turn), None)
+
         # in case where there is a unique char as the first index, we can use that to determine which bishop is in
         # the notation
         if len(notation) == 4:
             for bishop in bishop_tiles:
                 if notation[1] in bishop:
-                    return bishop, notation[-2:], piece
+                    return Move(Tile(bishop), Tile(notation[-2:]), piece(turn), None)
         # if the length of the notation is greater than 4, then the 1st and 2nd chars are the first tile,
         # and 3rd and 4th are the ending notation. "Be3d2"
         if len(notation) > 4:
-            return notation[1:3], notation[3:5], piece
+            return Move(Tile(notation[1:3]), Tile(notation[3:5]), piece(turn), None)
 
     def king_search(self, notation, turn):
         # possible coordinate spots from the king
@@ -363,7 +367,7 @@ class ChessBoard:
             # if the tile contains a King type, return it. Impossible for a King to be there
             # that is an opposite color. Because then king could take king
             if isinstance(self.board[new_tile], King):
-                return new_tile, notation[-2:], King
+                return Move(Tile(new_tile), Tile(notation[-2:]), King(turn), None)
 
     def queen_search(self, notation, turn):
         bishop_results = self.bishop_search(notation, turn, Queen)
@@ -385,30 +389,30 @@ class ChessBoard:
             return False
 
     @staticmethod
-    def handle_casting(notation, turn):
+    def handle_castling(notation, turn):
         if len(notation) == 3:
             if turn == Black:
                 # black short castle:
-                return "e8", "g8", King, "h8", "f8", Rook
+                return Move(Tile("e8"), Tile("g8"), King(Black), Castle(Tile("h8"), Tile("f8"), Rook(Black)))
             else:
                 # white short castle:
-                return "e1", "g1", King, "h1", "f1", Rook
+                return Move(Tile("e1"), Tile("g1"), King(White), Castle(Tile("h1"), Tile("f1"), Rook(White)))
         else:
             if turn == Black:
                 # black long castle
-                return "e8", "c8", King, "a8", "d8", Rook
+                return Move(Tile("e8"), Tile("c8"), King(Black), Castle(Tile("a8"), Tile("d8"), Rook(Black)))
             else:
                 # white long castle
-                return "e1", "c1", King, "a1", "d1", Rook
+                return Move(Tile("e1"), Tile("c1"), King(Black), Castle(Tile("a1"), Tile("d1"), Rook(Black)))
 
-    def notation_translation(self, notation, turn):
+    def notation_translation(self, notation, turn) -> Move:
         """
         :param notation: the notation for the move
         :param turn: who's turn is it? "white" or "black"
-        :return: a tuple, (starting_square, ending_square) representing the notation
+        :return: Move
         """
         if "0" in notation or "O" in notation:
-            return self.handle_casting(notation, turn)
+            return self.handle_castling(notation, turn)
         # if "x" is in the notation, we turn taking to true, so we can parse a bit easier
         taking = True if "x" in notation else False
         # ensure that turn is a correct param
@@ -443,23 +447,44 @@ class ChessBoard:
         :param move: Move type that contains all necessary data
                 :returns modified board type
         """
-        print(f'{tile_old} was occupied by {type_piece}, which is now on {tile_new} +{extra} last_move: {board.last_move}')
-        old_tile_occupant = board.board[tile_new]
         # calls the enpassant checker, will handle the enpassant remnants
+        color = board.board[move.old_tile].color
         board.board = self.handle_enpassant_remnant(board.board)
+        original_occupant = board.board[move.old_tile]
         # extra defaults to being ([],) when empty, we check if the len is not 1:
-        if not move.extra:
+        if move.extra:
             # extra looks like: (["a1", "d1", Rook],)
             # if a castle occurs:
-            if isinstance(move.extra, Enpassant):
-                pass                        
+            if isinstance(move.extra, DoublePawnMove):
+                # old tile becomes empty
+                board.board[move.old_tile] = Empty()
+                # new tile is occupied by pawn
+                board.board[move.new_tile] = move.piece
+                # now add the enpassant remnant
+                board.board[move.extra.tile] = EnpassantRemnant(move.extra.color)
             # doing the enpassantremnant
-            elif isinstance(move.extra, DoublePawnMove):  # extra: ([('g3', piece.enpass)],)
-                pass
+            elif isinstance(move.extra, Enpassant): 
+                # new tile is occupied by the piece
+                board.board[move.new_tile] = move.piece
+                # now set the old tile = Empty
+                board.board[move.old_tile] = Empty()
+                # now process the enemy pawn being killed
+                board.board[move.extra.death_tile] = Empty()
             else:  # castling
-                pass
-        
-                return board
+                # move the king to his new spot
+                board.board[move.new_tile] = move.piece
+                # set the king's old spot as empty
+                board.board[move.old_tile] = Empty()
+                # update the rook's new spot
+                board.board[move.extra.rook_ending] = board.board[move.extra.rook_starting]
+                # set the a1/a8/h1/h8 to empty
+                board.board[move.rook_starting] = Empty()
+        else:  # there are no extra commands
+            board.board[move.new_tile] = move.piece
+            board.board[move.old_tile] = Empty()
+        # append the move to the last move as new last move instance            
+        self.last_move.append(LastMove(move.new_tile, original_occupant, move.old_tile, Empty(), color, move.extra))
+        return board
 
     @staticmethod
     def all_occupied_tiles(board, color):
