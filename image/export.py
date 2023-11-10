@@ -5,8 +5,9 @@ from board.empty import Empty
 
 def generate_map():
     piece_map = {}
-    for path in os.listdir(r"./resources"):
-        opened = Image.open(f"./resources/{path}")
+    print(os.getcwd())
+    for path in os.listdir(r"./board/resources"):
+        opened = Image.open(f"./board/resources/{path}")
         png = opened.convert("RGBA")
         piece_map[path[:-4]] = png
     return piece_map
@@ -14,7 +15,7 @@ def generate_map():
 
 def hashmap_to_png(board: dict, extra=''):
     piece_key = generate_map()
-    png_board = Image.open("./resources/chessboard.png")
+    png_board = Image.open("./board/resources/chessboard.png")
     for key, value in board.items():
         # this covers enpassant remnants, they will have their name set to empty, we can just ignore it...
         if not isinstance(value, Empty):
@@ -50,8 +51,8 @@ def tile_to_pixels(tile: str) -> (int, int):
 
 
 def generate_value_png(board: dict):
-    img = Image.open("./resources/chessboard.png")
-    font = ImageFont.truetype("./font/ArialNarrow7-9YJ9n.ttf", 45)
+    img = Image.open("./board/resources/chessboard.png")
+    font = ImageFont.truetype("./board/font/ArialNarrow7-9YJ9n.ttf", 45)
     draw = ImageDraw.Draw(img)
     for key, value in board.items():
         y_value, x_value = tile_to_pixels(key.tile)
