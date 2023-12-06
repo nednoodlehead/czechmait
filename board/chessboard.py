@@ -81,9 +81,12 @@ class ChessBoard:
         if to_undo.extra: # castling, enpass or double jump has occured
             if isinstance(to_undo.extra, Enpassant):
                 # set the original tile to a pawn of the opposite of capturing pawn
-                self.board[to_undo.extra.start_tile] = Pawn(to_undo.extra.color.opposite_color)
+                one_or_minus_one = to_undo.extra.color.opposite_color.value(1)
+                # gets the tile that the pawn died one_or_minus_one
+                infront = chs.convert_tile(to_undo.extra.death_tile.tile, 0, one_or_minus_one)
+                self.board[infront] = Empty()
                 # set the 4th / 5th rank pawn as empty
-                self.board[to_undo.extra.death_tile] = Empty()
+                self.board[to_undo.extra.death_tile] = Pawn(to_undo.extra.color)
             elif isinstance(to_undo.extra, Castle):
                 # set the tile that the rook is normally on (a1, h1, a8, h8) as a rook
                 self.board[to_undo.rook_starting] = Rook(to_undo.color)

@@ -199,9 +199,8 @@ class EnpassantRemnant:  # does not inherit from 'Piece', because it is logicall
     # it must also decay one move after being placed
     value = 1  # value = 1 cause it is a pawn capture...
     # decay of all enpassant remnants will be reduced by 1 each turn, and will be removed if it == 0
-    # one is removed on said turn i believe, so 3 should make sense
-    decay = 3
-
+    # one is removed on said turn i believe, so 2 should make sense
+    decay = 2  
     def __init__(self, color):
         self.color = color
         self.name = f"{color.color}_en"
