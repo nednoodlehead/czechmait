@@ -13,6 +13,8 @@ class Black:
     @staticmethod
     def pawn_coming_from():
         return +1
+    def __repr__(self):
+        return "Black"
 
 
 class White:
@@ -29,6 +31,8 @@ class White:
     @staticmethod
     def pawn_coming_from():
         return -1
+    def __repr__(self):
+        return "White"
 
 
 # the classes must have this attribute, we add it here, so we do not have any undefined values inside 'Black'

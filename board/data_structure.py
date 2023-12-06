@@ -29,7 +29,8 @@ class LastMove:
         self.extra = extra
     def __str__(self):
         return f"undone_tile: {self.undone_tile}\nundone_occupant: {self.undone_occupant}\noriginal_tile: {self.original_tile}\noriginal_occupant: {self.original_occupant}\ncolor: {self.color}"
-        
+    def __repr__(self):
+        return f"undone_tile: {self.undone_tile}\nundone_occupant: {self.undone_occupant}\noriginal_tile: {self.original_tile}\noriginal_occupant: {self.original_occupant}\ncolor: {self.color}"
 
 
 class Enpassant(Extra):
