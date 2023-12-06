@@ -74,8 +74,9 @@ class ChessBoard:
         if len(self.last_move) == 0:
             raise ValueError("Calling undo on nothing? Are you stupid?")
         to_undo = self.last_move[-1]
-        self.board[to_undo.undone_tile] = to_undo.undone_occupant
-        self.board[to_undo.original_tile] = to_undo.original_occupant
+        print(f'undoing: {to_undo}')
+        self.board[to_undo.undone_tile] = to_undo.original_occupant
+        self.board[to_undo.original_tile] = to_undo.undone_occupant
         # remove the enpassant if there was one
         if to_undo.extra: # castling, enpass or double jump has occured
             if isinstance(to_undo.extra, Enpassant):
