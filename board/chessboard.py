@@ -97,7 +97,8 @@ class ChessBoard:
         self.last_move.pop()
 
     def move_from_notation(self, notation, color: type(White) | Black):
-        self.update_board(self, self.notation_translation(notation, color))
+    # 
+            self.update_board(self, self.notation_translation(notation, color))
 
     # used to see nearby tiles through calculations
     @staticmethod
@@ -108,7 +109,7 @@ class ChessBoard:
             :param (int) amount_number: amount to add to the number
 
         :returns tile with the added amounts
-        (h2, -2, 3) -> f5
+        (a1, 1, 5) -> b6
         """
         # divide the tile into the letter and number separately
         org_let, org_num = tile[0], int(tile[1])
