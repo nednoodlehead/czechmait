@@ -89,8 +89,8 @@ class ChessBoard:
                 self.board[to_undo.extra.death_tile] = Pawn(to_undo.extra.color)
             elif isinstance(to_undo.extra, Castle):
                 # set the tile that the rook is normally on (a1, h1, a8, h8) as a rook
-                self.board[to_undo.rook_starting] = Rook(to_undo.color)
-                self.board[to_undo.rook_ending] = Empty()
+                self.board[to_undo.extra.rook_starting] = Rook(to_undo.color)
+                self.board[to_undo.extra.rook_ending] = Empty()
             else: # pawn double jump
                 # set the spot where the enpassant remnant should be to empty!
                 self.board[to_undo.extra.tile] = Empty()
@@ -407,7 +407,7 @@ class ChessBoard:
                 return Move(Tile("e8"), Tile("c8"), King(Black), Castle(Tile("a8"), Tile("d8"), Rook(Black)))
             else:
                 # white long castle
-                return Move(Tile("e1"), Tile("c1"), King(Black), Castle(Tile("a1"), Tile("d1"), Rook(Black)))
+                return Move(Tile("e1"), Tile("c1"), King(White), Castle(Tile("a1"), Tile("d1"), Rook(Black)))
 
     def notation_translation(self, notation, turn) -> Move:
         """
@@ -482,7 +482,7 @@ class ChessBoard:
                 # update the rook's new spot
                 board.board[move.extra.rook_ending] = board.board[move.extra.rook_starting]
                 # set the a1/a8/h1/h8 to empty
-                board.board[move.rook_starting] = Empty()
+                board.board[move.extra.rook_starting] = Empty()
         else:  # there are no extra commands
             board.board[move.new_tile] = move.piece
             board.board[move.old_tile] = Empty()
