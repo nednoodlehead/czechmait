@@ -97,7 +97,8 @@ class ChessBoard:
         self.last_move.pop()
 
     def move_from_notation(self, notation, color: type(White) | Black):
-    # 
+    # maybe at some point will `color` be a depreciated param for this function. it will be held inside of the class
+    # and swapped from white -> black -> white each move.
             self.update_board(self, self.notation_translation(notation, color))
 
     # used to see nearby tiles through calculations
