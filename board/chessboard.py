@@ -130,17 +130,11 @@ class ChessBoard:
         :param color: str, either white or black, the color of the player querying
         :returns bool: is it occupied by enemy piece? aka, can it be taken?
         """
-        if color == Black:
-            # check that it is of color white, and it is not an enpassant remnant
-            if self.board[tile].color == White and isinstance(self.board[tile], Piece):
-                return True
-            else:
-                return False
-        else:
-            if self.board[tile].color == Black and isinstance(self.board[tile], Piece):
-                return True
-            else:
-                return False
+        # check that the tile is of opposite color, and that there is an enemy occupying it
+        if self.board[tile].color == color.opposite_color and isinstance(self.board[tile], Piece):
+            return True
+         else:
+            return False
 
     def pawn_is_occupied_enemy(self, tile, color):
         """
@@ -149,16 +143,10 @@ class ChessBoard:
         :param color: White or Black, color of the current turn
         :return: bool (it is occupied by enemy or not)
         """
-        if color == Black:
-            if self.board[tile].color == White:
-                return True
-            else:
-                return False
+        if self.board[tile].color == color.opposite_color:
+            return True
         else:
-            if self.board[tile].color == Black:
-                return True
-            else:
-                return False
+            return False
 
 
     def get_tile(self, tile):
