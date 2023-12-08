@@ -133,7 +133,7 @@ class ChessBoard:
         # check that the tile is of opposite color, and that there is an enemy occupying it
         if self.board[tile].color == color.opposite_color and isinstance(self.board[tile], Piece):
             return True
-         else:
+        else:
             return False
 
     def pawn_is_occupied_enemy(self, tile, color):
@@ -208,7 +208,7 @@ class ChessBoard:
             # if the position below the notation is empty, the pawn did a double jump, so starting pos -> 4th
             if isinstance(self.board[self.get_tile(f"{notation[0]}{str(int(notation[1]) + turn.pawn_coming_from())}")], Empty):
                 # pawn did do a double jump:
-                return Move( Tile(notation[0] + str(int(notation[1]) - turn.value(2))), Tile(notation), return_type(turn), DoublePawnMove(Tile(self.convert_tile(notation, 0, turn.pawn_coming_from())), turn))
+                return Move( Tile(notation[0] + str(int(notation[1]) - turn.value(2))), Tile(notation), return_type(turn), DoublePawnMove(Tile(self.convert_tile(notation, 0, turn.pawn_coming_from())), turn, EnpassantRemnant(turn)))
             else:
                 # pawn did not do a double jump
                 return Move(Tile(notation[0] + str(int(notation[1]) - turn.value(1))), Tile(notation), return_type(turn), None)
@@ -277,7 +277,7 @@ class ChessBoard:
                     if self.board[tile].color == turn:
                         nearby_knights.append(tile)
         if len(nearby_knights) == 0:
-            self.export_png("real horse hours nf3")
+            self.export_png("error from board - chessboard - knight_search")
             raise ValueError(f"Invalid notation given with current board {notation}")
         if len(notation) == 3:  # case: Ne3
             # return the only available knight's square that can go there, and the notation telling which square
@@ -491,6 +491,7 @@ class ChessBoard:
         return occupied_tiles
 
     @staticmethod
+    # should have a check to see if color is in check or not
     def all_possible_moves(board, color):
         moves = []
         for tile, piece in board.board.items():
@@ -506,6 +507,3 @@ class ChessBoard:
                 seen += piece.tiles_attacking(board, tile.tile)
         return seen
 
-
-
-chs = ChessBoard(testing_board)
