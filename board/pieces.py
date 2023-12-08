@@ -1,4 +1,5 @@
 from board.color import Black, White
+from board.data_structure import Move, DoublePawnMove, Enpassant, Castle
 
 
 class Piece:
@@ -30,12 +31,12 @@ def diagonal_analysis(board, tile: str, piece):
             if new_tile is None:
                 break
             elif board.is_occupied_enemy(new_tile, color):
-                piece_instances.append((tile, new_tile, piece))
+                piece_instances.append(Move(tile, new_tile, piece, None))
                 break
             elif board.is_occupied(new_tile):
                 break
             else:
-                piece_instances.append((tile, new_tile, piece))
+                piece_instances.append(Move(tile, new_tile, piece, None))
             count += 1
     return piece_instances
 
@@ -54,12 +55,12 @@ def horizontal_analysis(board, tile: str, piece):
             if not new_tile:
                 break
             elif board.is_occupied_enemy(new_tile, color):
-                piece_instances.append((tile, new_tile, piece))
+                piece_instances.append(Move(tile, new_tile, piece, None))
                 break
             elif board.is_occupied(new_tile):
                 break
             else:
-                piece_instances.append((tile, new_tile, piece))
+                piece_instances.append(Move(tile, new_tile, piece, None))
             val_1 += num[0]
             val_2 += num[1]
     return piece_instances
@@ -81,9 +82,9 @@ def knight_analysis(board, tile):
         else:
             if board.is_occupied(new_tile):
                 if board.is_occupied_enemy(new_tile, color):
-                    possible_moves.append((tile, new_tile, Knight))
+                    possible_moves.append(Move(tile, new_tile, Knight, None))
             else:
-                possible_moves.append((tile, new_tile, Knight))
+                possible_moves.append(Move(tile, new_tile, Knight, None))
     return possible_moves
 
 def king_analysis(board, tile):
@@ -98,9 +99,9 @@ def king_analysis(board, tile):
             continue
         # if the tile being checked is empty:
         if not board.is_occupied(new_tile):
-            possible_moves.append((tile, new_tile, King))
+            possible_moves.append(Move(tile, new_tile, King, None))
         elif board.is_occupied_enemy(new_tile, color):
-            possible_moves.append((tile, new_tile, King))
+            possible_moves.append(Move(tile, new_tile, King, None))
     return possible_moves
 
 
@@ -142,9 +143,9 @@ class Pawn(Piece):
             if front_tile[1] == color.pawn_promotion_rank:
                 for promotion_option in promotion_list:
                     # add each promotion option to available moves
-                    ret_list.append((tile, front_tile, promotion_option))
+                    ret_list.append(Move(tile, front_tile, promotion_option, None))
             else:
-                ret_list.append((tile, front_tile, Pawn))
+                ret_list.append(Move(tile, front_tile, Pawn, None))
             # two tiles infront of the pawn in question
             two_infront = board.convert_tile(front_tile, 0, color.value(1))
             # if it is on the second last rank, two_infront will return none, so we skip that edge case
@@ -153,7 +154,7 @@ class Pawn(Piece):
             # if there is two empty squares (the closest coming from the above if statement) and pawn is on starting rank
             # it is allowed to double jump
             elif not board.is_occupied(two_infront) and tile[1] == color.pawn_starting_rank:
-                ret_list.append((tile, two_infront, Pawn, (front_tile, EnpassantRemnant)))
+                ret_list.append(Move(tile, two_infront, Pawn, Enpassant(front_tile, color, ) ) )
         # this is the tile in the left most side (white perspective) for either color
         front_left_and_right_tile = [board.convert_tile(tile, 1, color.value(1)),
                                      board.convert_tile(tile, -1, color.value(1))]
@@ -170,13 +171,13 @@ class Pawn(Piece):
                 if front_tiles[1] == color.pawn_promotion_rank:
                     for promotion_option in promotion_list:
                         # add each promotion option to available moves
-                        ret_list.append((tile, front_tiles, promotion_option))
+                        ret_list.append(Move(tile, front_tiles, promotion_option, None))
                         # the extra param passed through is the tile where the current pawn is, and it will be replaced by
                         # Empty
                 else:
                     # so if the tile is occupied by enemy, we can do that move, with the check for promotion rank failing
                     # we just append
-                    ret_list.append((tile, front_tiles, Pawn))
+                    ret_list.append(Move(tile, front_tiles, Pawn, None))
         return ret_list
 
     @staticmethod
