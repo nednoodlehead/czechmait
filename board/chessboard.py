@@ -4,7 +4,7 @@ import copy
 import tests.boards
 from image import export
 from board.empty import Empty
-from board.pieces import Piece, EnpassantRemnant, Pawn, Bishop, Knight, Rook, Queen, King
+from board.pieces import Piece, EnpassantRemnant, Pawn, Bishop, Knight, Rook, Queen, King, is_in_check
 from tests.boards import enpass, default_board, enpass_real, testing_board
 from board.color import Black, White
 from board.data_structure import Move, Extra, LastMove, Enpassant, Castle, DoublePawnMove
@@ -17,6 +17,8 @@ class ChessBoard:
     missing_pieces_black = []
     missing_pieces_white = []
     delete_later = 0
+    white_king = Tile("e1")
+    black_king = Tile("e8")
     # tiles that have an enpassant remnant on them
     enpassant_tile = []
     last_move: List[LastMove] = [] # contains `board/data_structure/LastMove` types (undoing will be handled by this class however)
@@ -388,6 +390,7 @@ class ChessBoard:
             if turn == Black:
                 # black short castle:
                 return Move(Tile("e8"), Tile("g8"), King(Black), Castle(Tile("h8"), Tile("f8"), Rook(Black)))
+                
             else:
                 # white short castle:
                 return Move(Tile("e1"), Tile("g1"), King(White), Castle(Tile("h1"), Tile("f1"), Rook(White)))
@@ -445,6 +448,11 @@ class ChessBoard:
         color = board.board[move.old_tile].color
         board.board = self.handle_enpassant_remnant(board.board)
         original_occupant = board.board[move.old_tile]
+        if isinstance(move.piece, King):
+            if color == Black:
+                board.black_king = move.new_tile
+            else:
+                board.white_king = move.new_tile
         # extra defaults to being ([],) when empty, we check if the len is not 1:
         if move.extra:
             # extra looks like: (["a1", "d1", Rook],)
@@ -491,19 +499,28 @@ class ChessBoard:
         return occupied_tiles
 
     @staticmethod
-    # should have a check to see if color is in check or not
-    def all_possible_moves(board, color):
-        moves = []
-        for tile, piece in board.board.items():
-            if piece.color == color:
-                moves += piece.analysis(board, tile.tile)
-        return moves
-
-    @staticmethod
     def all_attacking_tiles(board, color):
         seen = []
         for tile, piece in board.board.items():
             if piece.color == color:
                 seen += piece.tiles_attacking(board, tile.tile)
         return seen
+    
+    @staticmethod
+    # should have a check to see if color is in check or not
+    def all_possible_moves(board, color):
+        enemy_occupied = board.all_attacking_tiles(board, color.opposite_color)
+        moves = []
+        for tile, piece in board.board.items():
+            if piece.color == color:
+                for potential_move in piece.analysis(board, tile.tile):
+                    board.update_board(board, Move)  # update the board to see if it would cause king to be in check
+                    if is_in_check(board, color):  # is our king in check?
+                        # not a valid move, since it puts our king in check
+                        pass 
+                    else:
+                        moves.append(potential_move)
+                    board.undo_move()  # undo the potential move
+                moves += piece.analysis(board, tile.tile)
+        return moves
 

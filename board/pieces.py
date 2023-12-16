@@ -166,8 +166,8 @@ class Pawn(Piece):
                 continue
             # if that tile is occupied by an enemy
             if board.pawn_is_occupied_enemy(front_tiles, color):
-                # if that tile being targeted is the promotion rank for the selected color, we can append each available
-                # promotion option to our list
+                # if that tile being targeted is the promotion ranT for the selected color, we can append each available
+                # promotion option to ourFlist
                 if front_tiles[1] == color.pawn_promotion_rank:
                     for promotion_option in promotion_list:
                         # add each promotion option to available moves
@@ -189,7 +189,7 @@ class Pawn(Piece):
         # the two tiles infront of the pawn
         front_1, front_2 = board.convert_tile(tile, color_val, +1), board.convert_tile(tile, color_val, -1)
         # return all tiles that are valid
-        return [(tile, new_tile, Pawn) for new_tile in (front_1, front_2) if new_tile is not None]
+        return [Move(tile, new_tile, Pawn, None) for new_tile in (front_1, front_2) if new_tile is not None]
 
 
 class EnpassantRemnant:  # does not inherit from 'Piece', because it is logically not a piece, and to distinguish from
@@ -318,3 +318,25 @@ class King(Piece):
     @staticmethod
     def tiles_attacking(board, tile):
         return king_analysis(board, tile)
+
+# sort of a dumb place for this function, but circular imports are soooo annoying
+def is_in_check(board, color) -> bool:
+    """
+    param: board: Chessboard
+    param color: Color that wants to find out if it is in check
+    """
+    king_square = board.black_king if color == Black else board.white_king
+    # maybe a better way to do this is to do a sort of 'reverse' check?
+    # so we would get the diagonols, vert, horzi, and knight areas that could check the king,
+    # and check if those are occupied by enemies
+    # would save on checking for the state and occupying tiles of unrelated pieces (like pawns far away)
+    print(f'king square: {king_square}')
+    seen = []
+    for tile, piece in board.board.items():
+        if piece.color == color.opposite_color:
+            seen += piece.tiles_attacking(board, tile.tile)
+    for move in seen:
+        if king_square == move.new_tile:
+            print("KING SQUARE!")
+            return True
+    return False
