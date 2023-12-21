@@ -212,7 +212,7 @@ class ChessBoard:
             # if the position below the notation is empty, the pawn did a double jump, so starting pos -> 4th
             if isinstance(self.board[self.get_tile(f"{notation[0]}{str(int(notation[1]) + turn.pawn_coming_from())}")], Empty):
                 # pawn did do a double jump:
-                return Move( Tile(notation[0] + str(int(notation[1]) - turn.value(2))), Tile(notation), return_type(turn), DoublePawnMove(Tile(self.convert_tile(notation, 0, turn.pawn_coming_from())), turn, EnpassantRemnant(turn)))
+                return Move( Tile(notation[0] + str(int(notation[1]) - turn.value(2))), Tile(notation), return_type(turn), DoublePawnMove(Tile(self.convert_tile(notation, 0, turn.pawn_coming_from())), turn, ))
             else:
                 # pawn did not do a double jump
                 return Move(Tile(notation[0] + str(int(notation[1]) - turn.value(1))), Tile(notation), return_type(turn), None)

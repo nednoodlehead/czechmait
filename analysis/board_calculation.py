@@ -108,7 +108,7 @@ def generate_tile_values(board: ChessBoard, color: type(Black) | type(White)) ->
     return value_board
 
 
-def evaluate_material(board: ChessBoard) -> (int, int):
+def evaluate_material(board: ChessBoard) -> int:
     white_val, black_val = 0, 0
     for piece in board.board.values():
         # ignore the kings in the quick eval
@@ -120,7 +120,37 @@ def evaluate_material(board: ChessBoard) -> (int, int):
             black_val += piece.value
         else:
             pass
-    return white_val, black_val
+    return white_val - black_val
+
+
+def basic_minmax(board: ChessBoard, color, maximizing: bool, depth: int ):
+    if depth == 0:
+        return (evaluate_material(board), None)
+    if maximizing:
+        max_val = -10_000
+        best_move = None
+        val = (0, None)
+        for possible_move in board.all_possible_moves(board, color):
+            board.update_board(board, possible_move)
+            val, _move = basic_minmax(board, color.opposite_color, False, depth -1)
+            board.undo_move()
+            if val > max_val:
+                max_val = val
+                best_move = possible_move
+        return (max_val, best_move)
+    else:
+        min_val = 10_000
+        best_move = None
+        val = (0, None)
+        for possible_move in board.all_possible_moves(board, color):
+            board.update_board(board, possible_move)
+            val, _move = basic_minmax(board, color.opposite_color, True, depth -1)
+            board.undo_move()
+            if val < min_val:
+                min_val = val
+                best_move = possible_move
+        return (min_val, best_move)
+    
 
 
 def is_in_check(board: ChessBoard, color):
