@@ -1,5 +1,6 @@
 # purpose of this file is to take in a chessboard as data, and analyze the position
 import copy
+import time
 
 import tests.boards
 from image import export
@@ -85,7 +86,7 @@ class ChessBoard:
                 # set the original tile to a pawn of the opposite of capturing pawn
                 one_or_minus_one = to_undo.extra.color.opposite_color.value(1)
                 # gets the tile that the pawn died one_or_minus_one
-                infront = chs.convert_tile(to_undo.extra.death_tile.tile, 0, one_or_minus_one)
+                infront = self.convert_tile(to_undo.extra.death_tile, 0, one_or_minus_one)
                 self.board[infront] = Empty()
                 # set the 4th / 5th rank pawn as empty
                 self.board[to_undo.extra.death_tile] = Pawn(to_undo.extra.color)
@@ -94,6 +95,7 @@ class ChessBoard:
                 self.board[to_undo.extra.rook_starting] = Rook(to_undo.color)
                 self.board[to_undo.extra.rook_ending] = Empty()
             else: # pawn double jump
+                print(f'got here: {to_undo}')
                 # set the spot where the enpassant remnant should be to empty!
                 self.board[to_undo.extra.tile] = Empty()
         self.last_move.pop()
@@ -445,6 +447,7 @@ class ChessBoard:
                 :returns modified board type
         """
         # calls the enpassant checker, will handle the enpassant remnants
+        print(f'move:: {type(move)} | {move}')
         color = board.board[move.old_tile].color
         board.board = self.handle_enpassant_remnant(board.board)
         original_occupant = board.board[move.old_tile]
@@ -509,18 +512,18 @@ class ChessBoard:
     @staticmethod
     # should have a check to see if color is in check or not
     def all_possible_moves(board, color):
-        enemy_occupied = board.all_attacking_tiles(board, color.opposite_color)
         moves = []
-        for tile, piece in board.board.items():
+        for (count, (tile, piece)) in enumerate(board.board.items()):
             if piece.color == color:
                 for potential_move in piece.analysis(board, tile.tile):
-                    board.update_board(board, Move)  # update the board to see if it would cause king to be in check
+                    print(f'updating board:::: {potential_move}')
+                    board.update_board(board, potential_move)  # update the board to see if it would cause king to be in check
                     if is_in_check(board, color):  # is our king in check?
                         # not a valid move, since it puts our king in check
                         pass 
                     else:
                         moves.append(potential_move)
+                    print(f"UNDOING {potential_move}")
                     board.undo_move()  # undo the potential move
-                moves += piece.analysis(board, tile.tile)
         return moves
 

@@ -61,7 +61,7 @@ class DoublePawnMove(Extra):
     # the pawn's nomal move (ex. d2 -> d4) is held outside of the extra type
     # this just contains the extra instruction for the move interperter to create an enpassant remnant
     # on the tile between the two (d3, in this case)
-    def __init__(self, tile: Tile, color: White | Black, type):
+    def __init__(self, tile: Tile, color: White | Black):
         """
         Arguments:
         tile: Tile. tile that the enpassant remnant is on. (Must be on 3rd or 6th rank)
