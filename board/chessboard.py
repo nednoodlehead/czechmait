@@ -77,7 +77,6 @@ class ChessBoard:
         if len(self.last_move) == 0:
             raise ValueError("Calling undo on nothing? Are you stupid?")
         to_undo = self.last_move[-1]
-        print(f'undoing: {to_undo}')
         self.board[to_undo.undone_tile] = to_undo.original_occupant
         self.board[to_undo.original_tile] = to_undo.undone_occupant
         # remove the enpassant if there was one
@@ -95,7 +94,6 @@ class ChessBoard:
                 self.board[to_undo.extra.rook_starting] = Rook(to_undo.color)
                 self.board[to_undo.extra.rook_ending] = Empty()
             else: # pawn double jump
-                print(f'got here: {to_undo}')
                 # set the spot where the enpassant remnant should be to empty!
                 self.board[to_undo.extra.tile] = Empty()
         self.last_move.pop()
@@ -447,10 +445,10 @@ class ChessBoard:
                 :returns modified board type
         """
         # calls the enpassant checker, will handle the enpassant remnants
-        print(f'move:: {type(move)} | {move}')
         color = board.board[move.old_tile].color
         board.board = self.handle_enpassant_remnant(board.board)
         original_occupant = board.board[move.old_tile]
+        captured_piece_or_empty = board.board[move.new_tile]
         if isinstance(move.piece, King):
             if color == Black:
                 board.black_king = move.new_tile
@@ -488,7 +486,7 @@ class ChessBoard:
             board.board[move.new_tile] = move.piece
             board.board[move.old_tile] = Empty()
         # append the move to the last move as new last move instance            
-        self.last_move.append(LastMove(move.new_tile, original_occupant, move.old_tile, Empty(), color, move.extra))
+        self.last_move.append(LastMove(move.new_tile, original_occupant, move.old_tile, captured_piece_or_empty, color, move.extra))
         return board
 
     @staticmethod
@@ -516,14 +514,12 @@ class ChessBoard:
         for (count, (tile, piece)) in enumerate(board.board.items()):
             if piece.color == color:
                 for potential_move in piece.analysis(board, tile.tile):
-                    print(f'updating board:::: {potential_move}')
                     board.update_board(board, potential_move)  # update the board to see if it would cause king to be in check
                     if is_in_check(board, color):  # is our king in check?
                         # not a valid move, since it puts our king in check
                         pass 
                     else:
                         moves.append(potential_move)
-                    print(f"UNDOING {potential_move}")
                     board.undo_move()  # undo the potential move
         return moves
 

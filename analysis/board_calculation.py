@@ -122,7 +122,6 @@ def evaluate_material(board: ChessBoard) -> int:
             pass
     return white_val - black_val
 
-
 def basic_minmax(board: ChessBoard, color, maximizing: bool, depth: int ):
     if depth == 0:
         return (evaluate_material(board), None)
@@ -147,6 +146,7 @@ def basic_minmax(board: ChessBoard, color, maximizing: bool, depth: int ):
             val, _move = basic_minmax(board, color.opposite_color, True, depth -1)
             board.undo_move()
             if val < min_val:
+                print(f"branch found: {min_val}")
                 min_val = val
                 best_move = possible_move
         return (min_val, best_move)
@@ -174,8 +174,8 @@ def find_king(board, color):
                 return tile
 
 
-def is_checkmated(board, color) -> bool:
-    if is_in_check(board, color) and not leave_check(board, color):
+def is_checkmated(board: ChessBoard, color) -> bool:
+    if len(board.possible_moves(board, color)) == 0:    
         return True
     else:
         return False

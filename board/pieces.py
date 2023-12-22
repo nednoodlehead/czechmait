@@ -130,7 +130,6 @@ class Pawn(Piece):
         piece occupying is a type of piece, Pawn, Knight, etc... that will be on that square
         extra params is for castling and en passant where multiple
         """
-        print(f"stupid tile here: {tile}")     
         color = board.board[tile].color
         if not color: board.export_png("no color")
         promotion_list = [Knight, Bishop, Rook, Queen]
@@ -333,13 +332,11 @@ def is_in_check(board, color) -> bool:
     # so we would get the diagonols, vert, horzi, and knight areas that could check the king,
     # and check if those are occupied by enemies
     # would save on checking for the state and occupying tiles of unrelated pieces (like pawns far away)
-    print(f'king square: {king_square}')
     seen = []
     for tile, piece in board.board.items():
         if piece.color == color.opposite_color:
             seen += piece.tiles_attacking(board, tile.tile)
     for move in seen:
         if king_square == move.new_tile:
-            print("KING SQUARE!")
             return True
     return False
