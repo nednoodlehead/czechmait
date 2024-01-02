@@ -49,8 +49,8 @@ class ChessBoard:
             return False
 
     # export the current board to a png
-    def export_png(self, extra):
-        export.hashmap_to_png(self.board, extra)
+    def export_png(self, extra='', open=False):
+        export.hashmap_to_png(self.board, extra, open)
 
     @staticmethod
     def handle_enpassant_remnant(board):
@@ -103,7 +103,33 @@ class ChessBoard:
     # and swapped from white -> black -> white each move.
             self.update_board(self, self.notation_translation(notation, color))
 
+    def move_from_game(self, game_string: str):
+        """
+        param: game_string: string that contains the game data. e.g. "1. d4 d5 2. Nf3 Nc6" or "d4 d5 Nf3 Nc6"
+        updates the game board
+        """
+        color = White
+        if game_string[0] == "1":
+            game_string = self.trim_game_string(game_string)  # remove the unneeded `1.` parts of the string
+        for move in game_string.split(" "):
+            print(f'making move: {move}')
+            self.move_from_notation(move, color)
+            color = color.opposite_color
     # used to see nearby tiles through calculations
+    def trim_game_string(self, string: str) -> str:
+        skipping = []
+        final = ""
+        for count, letter in enumerate(string):
+            if letter == ".":
+                skipping.append(count)                    
+                skipping.append(count - 1)                    
+                skipping.append(count + 1)
+        for count, letter in enumerate(string):
+            if count not in skipping:
+                final += letter
+        return final
+        
+                            
     @staticmethod
     def convert_tile(tile, amount_letter, amount_number):
         """Takes in a tile, a and returns tile with new amounts added
