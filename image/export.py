@@ -5,7 +5,6 @@ from board.empty import Empty
 
 def generate_map():
     piece_map = {}
-    print(os.getcwd())
     for path in os.listdir(r"./board/resources"):
         opened = Image.open(f"./board/resources/{path}")
         png = opened.convert("RGBA")
@@ -13,8 +12,12 @@ def generate_map():
     return piece_map
 
 
-def hashmap_to_png(board: dict, extra=''):
+def hashmap_to_png(board: dict, extra: str, open: bool):
     piece_key = generate_map()
+    if open:
+        image = Image.open(f"{os.getcwd()}\\regular_board_{extra}.png")
+        image.show()
+    print(f'export {os.getcwd()}\\extra')
     png_board = Image.open("./board/resources/chessboard.png")
     for key, value in board.items():
         # this covers enpassant remnants, they will have their name set to empty, we can just ignore it...
