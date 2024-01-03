@@ -96,6 +96,14 @@ class ChessBoard:
             else: # pawn double jump
                 # set the spot where the enpassant remnant should be to empty!
                 self.board[to_undo.extra.tile] = Empty()
+        if isinstance(to_undo.undone_occupant, King):
+            for tile, piece in self.board.items():
+                if isinstance(piece, King):
+                    if piece.color == White:
+                        self.white_king = tile
+                    else:
+                        self.black_king = tile
+                        
         self.last_move.pop()
 
     def move_from_notation(self, notation, color: type(White) | Black):
@@ -537,6 +545,10 @@ class ChessBoard:
     # should have a check to see if color is in check or not
     def all_possible_moves(board, color):
         moves = []
+        if is_in_check(board, color): # if we are actively in check, checkmate :(
+            return moves
+        else:
+            print(f'{color.color} is not in check')
         for (count, (tile, piece)) in enumerate(board.board.items()):
             if piece.color == color:
                 for potential_move in piece.analysis(board, tile.tile):
