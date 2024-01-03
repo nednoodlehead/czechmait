@@ -114,3 +114,12 @@ class CheckMate:
     def __str__(self):
         return f"Mate in {self.depth_found}"
         
+class Lines:
+    # class for holding the engine lines. mainly returning from a minmax function
+    def __init__(self, move: Move, eval: int):
+        self.move = move
+        self.eval = eval
+    def __repr__(self):
+        return f'{self.move} Eval: {self.eval}'
+    def __str__(self):
+        return f'{self.move} Eval: {self.eval}'
