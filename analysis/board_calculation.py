@@ -152,49 +152,42 @@ def is_checkmated(board: ChessBoard, color) -> bool:
 
 
 def minmaxroot(depth: int, board: ChessBoard, color, maximizing: bool):
-    bestmove = -9999
-    secondbest = -9999
-    thirdbest = -9999
-    bestmovefinal = None
+    bestmove = -9999  # line 1 value
+    secondbest = -9999  # line 2
+    thirdbest = -9999  # line 3
+    bestmove_to_make = None  # line 1 move
+    sec = None  # line 2 move
+    thr = None  # line 3 move
     for possible_move in board.all_possible_moves(board, color):
-        print(f'possible: {possible_move}')
-        board.update_board(board, possible_move)
-        value = minmax_2(depth, board, not maximizing, color)
-        board.undo_move()
-        if isinstance(value, CheckMate):
-            print("FOUNDER")
-            print(value > bestmove)
-        if value > bestmove:
-            print("Best score: " ,bestmove)
-            print("Best move: ",bestmovefinal)
-            print("Second best: ", secondbest)
+        board.update_board(board, possible_move)  # update board with new move
+        value = minmax(depth, board, not maximizing, color)  # call minmax again!
+        board.undo_move()  # start undoing moves after we have eval'd the position
+        if value > bestmove:  # if the value of the board is better than previous best
+            thr = sec  # update the lines
+            sec = bestmove_to_make
             thirdbest = secondbest
             secondbest = bestmove
             bestmove = value
-            bestmovefinal = possible_move
+            bestmove_to_make = possible_move
         else:
-            print(f'{value} is not larger than {bestmove}')
-    return bestmovefinal
+    # once done, return all the lines
+    return (bestmove_to_make, bestmove, sec, secondbest, thr, thirdbest)
         
 
-def minmax_2(depth, board, is_maximizing, color):
+def minmax(depth, board, is_maximizing, color):
+    # if reached depth:
     if depth == 0:
         return evaluate_material(board)
+    # if checkmate has occured
     if is_checkmated(board, color.opposite_color):
-        print("FOUND")
         return CheckMate(is_maximizing, depth)
-    else:
-        print(f'{color.opposite_color} is not in checkmate')
-        if isinstance(board.board["f7"], Queen):
-            board.export_png("not mate", True)
-            print("MATED")
-            print(is_checkmated(board, Black))
     if is_maximizing:
+        # bestmove will be overwritten by the first move..
         bestmove = -9999
         for possible_move in board.all_possible_moves(board, color):
+            # test out each move and recor it's valur
             board.update_board(board, possible_move)
             val = minmax_2(depth -1, board, False, color.opposite_color)
-            # print(f'val-max: {val}')
             if val > bestmove:
                 bestmove = val
             board.undo_move()
@@ -204,7 +197,6 @@ def minmax_2(depth, board, is_maximizing, color):
         for possible_move in board.all_possible_moves(board, color):
             board.update_board(board, possible_move)
             val = minmax_2(depth -1, board, False, color.opposite_color)
-            # print(f'val-min: {val}')
             if val < bestmove:
                 bestmove = val
             board.undo_move()
