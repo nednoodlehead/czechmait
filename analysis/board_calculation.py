@@ -5,7 +5,7 @@ from board.empty import Empty
 from board.color import Black, White
 from tests.boards import testing_board
 import copy
-
+from board.data_structure import CheckMate
 
 def evaluate_positional_board(board: ChessBoard, turn: type(White) | Black) -> float:
     # is used to determine who has a better position. So if white has more material, but black has more active pieces,
@@ -112,8 +112,8 @@ def evaluate_material(board: ChessBoard) -> int:
     white_val, black_val = 0, 0
     for piece in board.board.values():
         # ignore the kings in the quick eval
-        if isinstance(piece, King):
-            continue
+        # if isinstance(piece, King):
+            # continue
         if piece.color == White:
             white_val += piece.value
         elif piece.color == Black:
@@ -121,37 +121,6 @@ def evaluate_material(board: ChessBoard) -> int:
         else:
             pass
     return white_val - black_val
-
-def basic_minmax(board: ChessBoard, color, maximizing: bool, depth: int ):
-    if depth == 0:
-        return (evaluate_material(board), None)
-    if maximizing:
-        max_val = -10_000
-        best_move = None
-        val = (0, None)
-        for possible_move in board.all_possible_moves(board, color):
-            board.update_board(board, possible_move)
-            val, _move = basic_minmax(board, color.opposite_color, False, depth -1)
-            board.undo_move()
-            if val > max_val:
-                max_val = val
-                best_move = possible_move
-        return (max_val, best_move)
-    else:
-        min_val = 10_000
-        best_move = None
-        val = (0, None)
-        for possible_move in board.all_possible_moves(board, color):
-            board.update_board(board, possible_move)
-            val, _move = basic_minmax(board, color.opposite_color, True, depth -1)
-            board.undo_move()
-            if val < min_val:
-                print(f"branch found: {min_val}")
-                min_val = val
-                best_move = possible_move
-        return (min_val, best_move)
-    
-
 
 def is_in_check(board: ChessBoard, color):
     # color = color that we are checking is in check. So: is_in_check(White) == White is in check
@@ -175,23 +144,68 @@ def find_king(board, color):
 
 
 def is_checkmated(board: ChessBoard, color) -> bool:
-    if len(board.possible_moves(board, color)) == 0:    
+    if len(board.all_possible_moves(board, color)) == 0:    
         return True
+    return False
+
+
+
+
+def minmaxroot(depth: int, board: ChessBoard, color, maximizing: bool):
+    bestmove = -9999
+    secondbest = -9999
+    thirdbest = -9999
+    bestmovefinal = None
+    for possible_move in board.all_possible_moves(board, color):
+        print(f'possible: {possible_move}')
+        board.update_board(board, possible_move)
+        value = minmax_2(depth, board, not maximizing, color)
+        board.undo_move()
+        if isinstance(value, CheckMate):
+            print("FOUNDER")
+            print(value > bestmove)
+        if value > bestmove:
+            print("Best score: " ,bestmove)
+            print("Best move: ",bestmovefinal)
+            print("Second best: ", secondbest)
+            thirdbest = secondbest
+            secondbest = bestmove
+            bestmove = value
+            bestmovefinal = possible_move
+        else:
+            print(f'{value} is not larger than {bestmove}')
+    return bestmovefinal
+        
+
+def minmax_2(depth, board, is_maximizing, color):
+    if depth == 0:
+        return evaluate_material(board)
+    if is_checkmated(board, color.opposite_color):
+        print("FOUND")
+        return CheckMate(is_maximizing, depth)
     else:
-        return False
-
-
-
-
-def leave_check(board: ChessBoard, color: type(White) | type(Black)):
-    # given color will return valid moves that result in not being in check anymore
-    valid_moves = []
-    possible_moves = board.all_possible_moves(board, color)
-    for move in possible_moves:
-        old_tile, new_tile, type_piece, *extra = move
-        org_board = copy.deepcopy(board.board)
-        chs = ChessBoard(org_board)
-        theory_board = chs.update_board(chs, old_tile, new_tile, type_piece, extra)
-        if not is_in_check(theory_board, color):
-            valid_moves.append((old_tile, new_tile, type_piece, extra))
-    return valid_moves
+        print(f'{color.opposite_color} is not in checkmate')
+        if isinstance(board.board["f7"], Queen):
+            board.export_png("not mate", True)
+            print("MATED")
+            print(is_checkmated(board, Black))
+    if is_maximizing:
+        bestmove = -9999
+        for possible_move in board.all_possible_moves(board, color):
+            board.update_board(board, possible_move)
+            val = minmax_2(depth -1, board, False, color.opposite_color)
+            # print(f'val-max: {val}')
+            if val > bestmove:
+                bestmove = val
+            board.undo_move()
+        return bestmove
+    else:
+        bestmove = 9999
+        for possible_move in board.all_possible_moves(board, color):
+            board.update_board(board, possible_move)
+            val = minmax_2(depth -1, board, False, color.opposite_color)
+            # print(f'val-min: {val}')
+            if val < bestmove:
+                bestmove = val
+            board.undo_move()
+        return bestmove
