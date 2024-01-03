@@ -545,8 +545,6 @@ class ChessBoard:
     # should have a check to see if color is in check or not
     def all_possible_moves(board, color):
         moves = []
-        if is_in_check(board, color): # if we are actively in check, checkmate :(
-            return moves
         for (count, (tile, piece)) in enumerate(board.board.items()):
             if piece.color == color:
                 for potential_move in piece.analysis(board, tile.tile):

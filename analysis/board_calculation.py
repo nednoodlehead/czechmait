@@ -5,7 +5,7 @@ from board.empty import Empty
 from board.color import Black, White
 from tests.boards import testing_board
 import copy
-from board.data_structure import CheckMate
+from board.data_structure import CheckMate, Lines
 
 def evaluate_positional_board(board: ChessBoard, turn: type(White) | Black) -> float:
     # is used to determine who has a better position. So if white has more material, but black has more active pieces,
@@ -169,9 +169,8 @@ def minmaxroot(depth: int, board: ChessBoard, color, maximizing: bool):
             secondbest = bestmove
             bestmove = value
             bestmove_to_make = possible_move
-        else:
     # once done, return all the lines
-    return (bestmove_to_make, bestmove, sec, secondbest, thr, thirdbest)
+    return (Lines(bestmove_to_make, bestmove), Lines(sec, secondbest), Lines(thr, thirdbest))
         
 
 def minmax(depth, board, is_maximizing, color):
@@ -180,6 +179,8 @@ def minmax(depth, board, is_maximizing, color):
         return evaluate_material(board)
     # if checkmate has occured
     if is_checkmated(board, color.opposite_color):
+        if not isinstance(board.board["f7"], Queen):
+            breakpoint()
         return CheckMate(is_maximizing, depth)
     if is_maximizing:
         # bestmove will be overwritten by the first move..
@@ -187,7 +188,7 @@ def minmax(depth, board, is_maximizing, color):
         for possible_move in board.all_possible_moves(board, color):
             # test out each move and recor it's valur
             board.update_board(board, possible_move)
-            val = minmax_2(depth -1, board, False, color.opposite_color)
+            val = minmax(depth -1, board, False, color.opposite_color)
             if val > bestmove:
                 bestmove = val
             board.undo_move()
@@ -196,7 +197,7 @@ def minmax(depth, board, is_maximizing, color):
         bestmove = 9999
         for possible_move in board.all_possible_moves(board, color):
             board.update_board(board, possible_move)
-            val = minmax_2(depth -1, board, False, color.opposite_color)
+            val = minmax(depth -1, board, False, color.opposite_color)
             if val < bestmove:
                 bestmove = val
             board.undo_move()
