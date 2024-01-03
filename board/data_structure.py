@@ -91,3 +91,26 @@ class Move:
         return f"{self.piece} moves from {self.old_tile} to {self.new_tile}"
     def __repr__(self):
         return f"{self.piece} moves from {self.old_tile} to {self.new_tile}\n"
+
+
+class CheckMate:
+    # used when returning from a minmax algo that there is a checkmate found
+    # should be able to be 'compared' to the integers, and always choosen as the best option
+    def __init__(self, maximizing: bool, depth_found: int):
+        # color is needed because white being checkmate for black is good, but bad for white... 
+        # depth_found is so we can tell to the user how many moves till forced mate
+        value = 0
+        self.depth_found = depth_found
+        # need maximizing so we can find out which color to 'cheer' for (yaknow)
+        self.maximizing = maximizing
+    def __lt__(self, other):
+        # maybe some logic to compare if isinstance(Checkmate), lower depth == better
+        return False
+    def __gt__(self, other):
+        # same as __lt__
+        return True  
+    def __repr__(self):
+        return f"Mate in {self.depth_found}"
+    def __str__(self):
+        return f"Mate in {self.depth_found}"
+        
